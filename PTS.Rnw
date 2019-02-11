@@ -1,0 +1,160 @@
+\documentclass{tufte-book}
+\usepackage{graphicx}  % werken met figuren
+\usepackage{gensymb} % werken met wetenschappelijke eenheden\usepackage{geometry}
+\usepackage{changepage} % http://ctan.org/pkg/changepage
+\usepackage[dutch,british]{babel} % instelling van de taal (woordsplitsing, spellingscontrole)
+\usepackage[parfill]{parskip} % Paragrafen gescheiden door witte lijn en geen inspringing
+\usepackage[font=small,skip=3pt]{caption} % Minder ruimte tussen figuur/table en ondertitel. Ondertitel klein
+\usepackage{capt-of}
+\usepackage{indentfirst}
+\setlength{\parindent}{0.7cm}
+\usepackage{enumitem} % Laat enumerate werken met letters
+\usepackage{url}
+\usepackage{lipsum}
+\setkeys{Gin}{width=\linewidth,totalheight=\textheight,keepaspectratio}
+% Prints a trailing space in a smart way.
+\usepackage{xspace}
+\usepackage{hyperref}
+\usepackage{amsmath}
+
+\DeclareGraphicsExtensions{.pdf,.png,.jpg}
+
+% Alter some LaTeX defaults for better treatment of figures:
+% See p.105 of "TeX Unbound" for suggested values.
+% See pp. 199-200 of Lamport's "LaTeX" book for details.
+%   General parameters, for ALL pages:
+    \renewcommand{\topfraction}{0.9}	% max fraction of floats at top
+    \renewcommand{\bottomfraction}{0.9}	% max fraction of floats at bottom
+%   Parameters for TEXT pages (not float pages):
+    \setcounter{topnumber}{2}
+    \setcounter{bottomnumber}{2}
+    \setcounter{totalnumber}{4}     % 2 may work better
+    \renewcommand{\textfraction}{0.1}	% allow minimal text w. figs
+%   Parameters for FLOAT pages (not text pages):
+    \renewcommand{\floatpagefraction}{0.8}	% require fuller float pages
+% N.B.: floatpagefraction MUST be less than topfraction !!
+\setcounter{secnumdepth}{3}
+
+\newcommand{\tthdump}[1]{#1}
+
+\newcommand{\openepigraph}[2]{
+  \begin{fullwidth}
+  \sffamily\large
+    \begin{doublespace}
+      \noindent\allcaps{#1}\\ % epigraph
+      \noindent\allcaps{#2} % author
+    \end{doublespace}
+  \end{fullwidth}
+}
+
+
+\usepackage{makeidx}
+\makeindex
+
+\title{Proper Time Series}
+\author{Jan Trommelmans}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE,prefix.string=PTS}
+\setkeys{Gin}{width=1.1\marginparwidth} %% Sweave
+
+<<echo=FALSE>>=
+library(tidyverse)
+library(lubridate)
+library(broom)
+library(funModeling)
+library(forecast)
+library(gridExtra)
+library(writexl)
+library(plotly)
+library(ggfortify)
+@
+
+% Setting the ggplot theme:
+<<echo=FALSE>>=
+JT.theme <- theme(panel.border = element_rect(fill = NA, colour = "gray10"),
+                  panel.background = element_blank(),
+                  panel.grid.major = element_line(colour = "gray85"),
+                  panel.grid.minor = element_line(colour = "gray85"),
+                  panel.grid.major.x = element_line(colour = "gray85"),
+                  axis.text = element_text(size = 8 , face = "bold"),
+                  axis.title = element_text(size = 9 , face = "bold"),
+                  plot.title = element_text(size = 12 , face = "bold"),
+                  strip.text = element_text(size = 8 , face = "bold"),
+                  strip.background = element_rect(colour = "black"),
+                  legend.text = element_text(size = 8),
+                  legend.title = element_text(size = 9 , face = "bold"),
+                  legend.background = element_rect(fill = "white"),
+                  legend.key = element_rect(fill = "white"))
+@
+
+% Functions
+<<echo=FALSE>>=
+TRJ.FFT <- function(signal.df) {
+    # This function calculates the FFT for a time-series stored in a data frame with as first 
+    # column the time (or order of measurement) and as second column the vector of measurements.
+    # The result is a list. 
+    # The first element of the list is freqspec: the N frequencies plus for each frequency the 
+    # amplitude and phase.
+    # The second element of the list is resultaat: a data frame with those frequencies for which 
+    # the amplitude  is at least 33% of the maximum amplitude. 
+    # The data frame is sorted from highes amplitude to lowest. 
+    # This data frame can be seen as containing the most influential frequencies.
+    signal <- signal.df
+    names(signal) <- c("t","x")
+    N <- nrow(signal)
+    Ts <- as.numeric(signal$t[2]-signal$t[1])
+    Fs <- 1/Ts
+    # Calculation of the double sided en single sided spectrum
+    z <- fft(signal$x)
+    P2 <- Mod(z/N)
+    P1 <- P2[1:((N/2)+1)]
+    P1[2:(length(P1)-1)] <- 2*P1[2:(length(P1)-1)]
+    freq <- seq(0, (Fs/2)-(Fs/N), Fs/N)
+    freqspec <- data.frame(freq=freq,amp=P1[1:(N/2)],arg=Arg(z[1:(N/2)]))
+    # Finding the most important elements in the frequency spectrum
+    grens <- ifelse(freqspec$freq[freqspec$amp==max(freqspec$amp)]==0,max(freqspec$amp[2:nrow(freqspec)])/3,max(freqspec$amp)/3)
+    aantal <- length(freqspec$amp[freqspec$amp>grens])
+    resultaat <- data.frame(freq=rep(0,aantal), amp=rep(0,aantal), fasehoek=rep(0,aantal))
+    resultaat <- data.frame(freq=freqspec$freq[freqspec$amp>grens],
+                            amp=freqspec$amp[freqspec$amp>grens],
+                            fasehoek_pi=freqspec$arg[freqspec$amp>grens]/pi)
+    resultaat <- resultaat[order(-resultaat$amp),]
+    return(list("freqspec"=freqspec,"resultaat"=resultaat))
+}
+@
+
+
+\frontmatter
+\chapter*{Proper Time Series}
+
+\mainmatter
+
+\chapter{Forecasting}\index{Forecasting}
+\section{The trouble with forecasting}
+
+By definition it's about the future: you are stepping into unknown territory. 
+\begin{quotation}
+  ''To boldly go where no man has gone before"
+\end{quotation}
+
+and this brings us the warning of Niels Bohr
+\begin{quotation}
+ ''It is very hard to predict, especially the future"
+\end{quotation}
+
+Even when we use \emph{cross-sectional}\index{data!cross-sectional} data\sidenote{cross-sectional data are collected by observing many subjects at the same point of time. E.g. the exam results of a group of students, the SAT-scores of these students} to try to find a connection between these data (e.g. by linear regression), we implore our students to take care \emph{not} to extend models based on these data \emph{outside} the range into which they were developed. Forecasting, on the contrary, wants to do exactly this.
+
+\printindex
+
+\newpage
+
+\textbf{Thanks} \\
+\medskip
+R Core Team (2018). R: A language and environment for statistical computing. R Foundation for Statistical Computing, Vienna, Austria. URL https://www.R-project.org/.
+\medskip
+<<>>=
+sessionInfo()
+@
+
+\end{document}
