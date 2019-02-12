@@ -59,6 +59,7 @@
 \setkeys{Gin}{width=1.1\marginparwidth} %% Sweave
 
 <<echo=FALSE>>=
+library(scales)
 library(tidyverse)
 library(lubridate)
 library(broom)
@@ -143,7 +144,67 @@ and this brings us the warning of Niels Bohr
  ''It is very hard to predict, especially the future"
 \end{quotation}
 
-Even when we use \emph{cross-sectional}\index{data!cross-sectional} data\sidenote{cross-sectional data are collected by observing many subjects at the same point of time. E.g. the exam results of a group of students, the SAT-scores of these students} to try to find a connection between these data (e.g. by linear regression), we implore our students to take care \emph{not} to extend models based on these data \emph{outside} the range into which they were developed. Forecasting, on the contrary, wants to do exactly this.
+Even when we use \emph{cross-sectional}\index{data!cross-sectional} data\sidenote[][-2cm]{cross-sectional data are collected by observing many subjects at the same point of time. E.g. the exam results of a group of students, the SAT-scores of these students at the end of their secondary education} to try to find a connection between these data (e.g. by linear regression), we implore our students to take care \emph{not} to extend models based on these data \emph{outside} the range into which they were developed. Forecasting, on the contrary, wants to do exactly this.
+
+Because we humans have the privilege of vision, we have an inbuilt tendency to extrapolate. For example: Figure~\ref{fig:Amtrakdata} shows the monthly number (in thousands) of people who used the Amtrak railway system between Januari 1991 up to March 2004.
+
+<<label=Amtrakbackground,fig=TRUE,include=FALSE, echo=FALSE>>=
+Amtrak.data <- read.csv("Data/Amtrak data.csv", sep=";", stringsAsFactors = FALSE)
+# transforming the ''Month" column into a proper date variable
+Amtrak.data %>%  mutate(day = myd(paste0(Month, "-01"))) -> Amtrak.data
+Amtrak.data$t <- c(1:nrow(Amtrak.data))
+datebreaks <- seq(as.Date("1991-01-01"), as.Date("2009-06-01"), by = "2 year")
+ggplot(data=Amtrak.data) +
+                        geom_line(aes(x=day, y=Ridership), size=0.75, color="white", alpha = 0) +
+                        scale_x_date(breaks = datebreaks, labels = date_format("%Y-%m")) +
+                        expand_limits(x = as.Date(c("1990-06-01", "2007-06-01"))) +
+                        labs(title="Monthly Amtrak ridership data", 
+                             x = "Date",
+                             caption = "Practical Time Series Forecasting with R - Shmueli and Lichtendahl Jr.") +
+                        JT.theme
+@
+
+<<label=Amtrakdata,fig=TRUE,include=FALSE, echo=FALSE>>=
+Amtrak.data <- read.csv("Data/Amtrak data.csv", sep=";", stringsAsFactors = FALSE)
+# transforming the ''Month" column into a proper date variable
+Amtrak.data %>%  mutate(day = myd(paste0(Month, "-01"))) -> Amtrak.data
+Amtrak.data$t <- c(1:nrow(Amtrak.data))
+datebreaks <- seq(as.Date("1991-01-01"), as.Date("2009-06-01"), by = "2 year")
+Amtrak.baseplot <- ggplot(data=Amtrak.data) +
+                          geom_line(aes(x=day, y=Ridership), size=0.75, color="red") +
+                          scale_x_date(breaks = datebreaks, labels = date_format("%Y-%m")) +
+                          expand_limits(x = as.Date(c("1990-06-01", "2007-06-01"))) +
+                          labs(title="Monthly Amtrak ridership data", 
+                               x = "Date",
+                               caption = "Practical Time Series Forecasting with R - Shmueli and Lichtendahl Jr.") +
+                          JT.theme
+Amtrak.baseplot
+@
+
+\begin{marginfigure}[-1cm]
+\includegraphics[width=1\textwidth]{PTS-Amtrakdata}
+\caption{Amtrak: data}
+\label{fig:Amtrakdata}
+\setfloatalignment{b}
+\end{marginfigure}
+
+Our eyes suggest that there are patterns within these data: there is a wave-like motion around a more general curve that first goes down and then starts to rise (Figure~\ref{fig:Amtraktrendseason})
+
+\begin{marginfigure}
+\includegraphics[width=1\textwidth]{PTS-Amtraktrendseason}
+\caption{Amtrak: pattern}
+\label{fig:Amtraktrendseason}
+\setfloatalignment{b}
+\end{marginfigure}
+
+With this pattern in mind we have a tendency to \emph{extend} this into to future and to generate something like Figure~\ref{fig:Amtrakpred}.
+
+\begin{figure}
+\includegraphics[width=1\textwidth]{PTS-Amtrakpred}
+\caption{Amtrak: into the future}
+\label{fig:Amtrakpred}
+\setfloatalignment{b}
+\end{figure}
 
 \printindex
 
