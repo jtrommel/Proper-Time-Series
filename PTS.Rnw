@@ -69,6 +69,7 @@ library(gridExtra)
 library(writexl)
 library(plotly)
 library(ggfortify)
+library(latex2exp)
 @
 
 % Setting the ggplot theme:
@@ -250,6 +251,60 @@ ggplot() +
 \end{marginfigure}
 
 As we can see, the new values ($t>100$) fall (almost) within the predicted confidence intervals (red for the dice experiment, blue for the normal sampling experiment). And while it is true that this does not give us accurate predictions on an experiment-by-experiment basis, it gives a general idea of what we can expect. At this moment we can assure the reader that better prediction methods are available for stationary time series!
+\newpage
+\section{Independency}\index{independency}
+
+When we look at Figure~\ref{fig:independency1}, both graphs have the same appearance. The graph on the left shows measurements of temperature (\degree C) and pressure (bar) of a gas (in this case 35 g (= 1.208 mole) of dry air) within a cilinder with volume V=25 l. It is a standard experiment in physics checking the ideal gas law which says that temperature and pressure should be proportional. The graph on the right shows the proportion of EU-immigrants to the UK per quarter, starting in Q4 of 2009 and ending in Q2 of 2012. The reference is the starting value (Q4 of 2009).
+
+<<label=independency1, fig=TRUE, include=FALSE, echo=FALSE>>=
+#
+# Ideal gas experiment: relation between pressure and temperature
+#
+# 35g=1.208 mol dry air in 25l volume
+# temp in °C
+# pressure in bar (devide pressure in Pa by 10^5)
+# p = (n*R*T)/V = (1.208*8.314*(temp + 273.15))/(25*(10^-3)*(10^5)) + error term
+#
+set.seed(2019)
+ideal <- data.frame(temp = seq(0, 180, 20), press = (1.208*8.314*(seq(0, 180, 20) + 273.15))/2500 + rnorm(10, 0, 0.025))
+p1 <- ggplot(data = ideal) +
+        geom_point(aes(x = temp, y = press), col = "red") +
+        labs(title = "Experiment\nideal gas law", x = "temperature (°C)", y = "pressure (bar)") +
+        scale_y_continuous(limits = c(0.9, 1.9)) +
+        JT.theme
+#
+# Number of EU-immigrants to the UK from 2009 - Q4 to 2012-Q2 (2009-Q4 = 100). Source: Office for National Statistics (UK) - Provisional long-term international migration estimate
+#
+EUimm <- data.frame(date = seq(ymd("2009-12-01"), ymd("2012-06-01"), by = "quarters"), number = c(1, 1.06, 1.14, 1.23, 1.4, 1.35, 1.43, 1.5, 1.65, 1.77, 1.79))
+p2 <- ggplot(data = EUimm) +
+        geom_point(aes(x = date, y = number), col = "red") +
+        labs(title = "Time series\nEU-immigrants to the UK", x = "date", y = "2009 Q4 = 1.0") +
+        scale_y_continuous(limits = c(0.9, 1.9)) +
+        JT.theme
+grid.arrange(p1, p2, nrow = 1)
+@
+
+\begin{marginfigure}
+\includegraphics[width=1\textwidth]{PTS-independency1}
+\caption{Independency}
+\label{fig:independency1}
+\setfloatalignment{b}
+\end{marginfigure}
+
+However, there is a big difference. A proper scientific experiment is done carefully using the \emph{design of experiments}-methodology\index{design of experiments}\index{DOE!Design of Experiments}. One of the most important aspects is to make sure that each set of observations of temperature and pressure is done \emph{idependently} of previous or future measurements. This is done by \emph{randomisation}\index{randomisation}. Instead of starting with a temperature of 0\degree C and stepswise increasing the temperature with 20\degree C until we reach 180\degree C (the \emph{standard order}), we will do this in a random way (the \emph{run order}).
+
+<<>>=
+run.order <- sample(seq(0, 180, 20))
+run.order
+@
+
+We start at 80\degree C, then we go to 100\degree C, then to 140\degree C and then we cool to 20\degree C etc. It will be obvious that this requires much more time for heating, cooling, reheating etc. than when we use the standard order. However, it is worth it because in this way we eliminate the possible influence of a steady increase in temperature on the measurement. In short: we set up our experiment is such a way that we the obeservations are \emph{independent}\index{independency} of each other.
+
+With the time series of the EU-migrants to the UK this is not possible. We cannot design our measurements in such a way that the first measurement will be taken in June 2010 (Q2 of 2010), the next measurement in December 2011 (Q4 of 2011), the third in December 2009 (Q4 of 2009) etc. Either the future is not accessible, or if we wait, the past cannot be redone. We have not choice but to make our observations starting in Q4 2009, ending in Q2 2012 and this every quarter in its proper turn. In short we cannot guarantee that the observations in a time series are \emph{independent}. This does not however mean that all measurements as a function of time suffer from dependency!
+
+The uncertainty about independence has serious consequences. Many standard statistical methods (e.g. linear regression) can only be applied securely on condition that the observations are independent.
+
+For general time series it is prudent to suppose that the measurements are \emph{not independent}\index{not independent}.
 
 \newpage
 For example: Figure~\ref{fig:Amtrakdata} shows the monthly number (in thousands) of people who used the Amtrak railway system between Januari 1991 up to March 2004.
@@ -312,9 +367,18 @@ With this pattern in mind we have a tendency to \emph{extend} this into to futur
 \setfloatalignment{b}
 \end{figure}
 
-
-
 Even when we use \emph{cross-sectional}\index{data!cross-sectional} data\sidenote[][-2cm]{cross-sectional data are collected by observing many subjects at the same point of time. E.g. the exam results of a group of students, the SAT-scores of these students at the end of their secondary education} to try to find a connection between these data (e.g. by linear regression), we implore our students to take care \emph{not} to extend models based on these data \emph{outside} the range into which they were developed. Forecasting, on the contrary, wants to do exactly this.
+
+\newpage
+\section{Appendix 1}
+\label{sec:appendix1}
+
+A classical physics experiment is investigating the distance covered by a free falling ball in Earth's gravity. The distance traveled in a time $t$ is given by:
+\begin{equation}
+	y(t)=\frac{g t^{2}}{2} \quad with \quad g=9.81 m/s^{2}
+\end{equation}
+
+However, nothing forces us to measure the distance $y$ for $t=0s$, then $t=1 s$, then $t=2s$ etc. We can randomise the experiment and make the first the first measurement at $t=8s$, then at $t=5s$, than $t=1s$ etc. This means that the results will be independent of each other. Essentially the question is: are we constrained to make our observations in a strict sequence.
 
 \printindex
 
