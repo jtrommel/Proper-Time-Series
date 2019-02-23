@@ -299,52 +299,63 @@ p2 <- ggplot(data = EUimm) +
 grid.arrange(p1, p2, nrow = 1)
 @
 
-\begin{marginfigure}
-\includegraphics[width=1\textwidth]{PTS-independency1}
+\begin{figure}
+\includegraphics[width=0.8\textwidth]{PTS-independency1}
 \caption{Independency}
 \label{fig:independency1}
 \setfloatalignment{b}
-\end{marginfigure}
+\end{figure}
 
-However, there is a big difference. A proper scientific experiment is done carefully using the \emph{design of experiments}-methodology\index{design of experiments}\index{DOE!Design of Experiments}. One of the most important aspects is to make sure that each set of observations of temperature and pressure is done \emph{idependently} of previous or future measurements. This is done by \emph{randomisation}\index{randomisation}. Instead of starting with a temperature of 0\degree C and stepswise increasing the temperature with 20\degree C until we reach 180\degree C (the \emph{standard order}), we will do this in a random way (the \emph{run order}).
+The graphs look similar but there is a big difference. A proper scientific experiment is done carefully using the \emph{design of experiments}-methodology\index{design of experiments}\index{DOE!Design of Experiments}. One of the most important aspects is to make sure that each set of observations of temperature and pressure is made \emph{independently} of previous or future measurements. This is done by \emph{randomisation}\index{randomisation}. Instead of starting with a temperature of 0\degree C and stepswise increasing the temperature with 20\degree C until we reach 180\degree C (the \emph{standard order}), we will do this in a random way (the \emph{run order}).
 
 <<>>=
 run.order <- sample(seq(0, 180, 20))
 run.order
 @
 
-We start at 80\degree C, then we go to 100\degree C, then to 140\degree C and then we cool to 20\degree C etc. It will be obvious that this requires much more time for heating, cooling, reheating etc. than when we use the standard order. However, it is worth it because in this way we eliminate the possible influence of a steady increase in temperature on the measurement. In short: we set up our experiment is such a way that we the obeservations are \emph{independent}\index{independency} of each other (Figure~\ref{fig:independency2}-left).
+We start at 80\degree C, then we go to 100\degree C, then to 140\degree C and then we cool to 20\degree C etc. It will be obvious that this requires much more time for heating, cooling, reheating etc. than when we use the standard order. However, it is worth it because in this way we eliminate the possible influence of a steady increase in temperature on the measurement. In short: we set up our experiment is such a way that we the obeservations are \emph{independent}\index{independency} of each other (Figure~\ref{fig:independency2}-left). Plotting the measurement of pressure as a function of the moment in time that it was recorded, and assuming it takes 1 hour between two consecutive measurements, we get something like Figure~\ref{fig:independency2}-middle\sidenote{In reality the measurements will probably not be nicely evenly spaced}.
 
 With the time series of the EU-migrants to the UK this is not possible. We cannot design our measurements in such a way that the first measurement will be taken in June 2010 (Q2 of 2010), the next measurement in December 2011 (Q4 of 2011), the third in December 2009 (Q4 of 2009) etc. Either the future is not accessible, or if we wait, the past cannot be redone. We have not choice but to make our observations starting in Q4 2009, ending in Q2 2012 and this every quarter in its proper turn (Figure~\ref{fig:independency2}-right). In short we cannot guarantee that the observations in a time series are \emph{independent}. This does not however mean that all measurements as a function of time suffer from dependency!
 
 <<label=independency2, fig=TRUE, include=FALSE, echo=FALSE>>=
 p1 <- ggplot(data = ideal) +
         geom_point(aes(x = temp, y = press), col = "red") +
-        geom_point(aes(x = temp, y = (press + 0.05)), 
+        geom_point(aes(x = temp, y = (press + 0.035)), 
                    col = "black", shape = 1, size = 5) +
-        geom_text(aes(x = temp, y = (press + 0.05)), 
+        geom_text(aes(x = temp, y = (press + 0.035)), 
                   label = c("5", "4", "7", "8", "1", "2", "9", "3", "6", "10"), size = 3) +
         labs(title = "Experiment\nideal gas law", x = "temperature (°C)", y = "pressure (bar)") +
         scale_y_continuous(limits = c(0.9, 1.9)) +
         JT.theme
-p2 <- ggplot(data = EUimm) +
-        geom_point(aes(x = date, y = number), col = "red") +
-        geom_point(aes(x = date, y = (number + 0.05)), 
+ideal$ts <- c(ideal$press[5], ideal$press[6], ideal$press[8], ideal$press[2], ideal$press[1], ideal$press[9], ideal$press[3], ideal$press[4], ideal$press[7], ideal$press[10])
+ideal$time <- seq(1,10)
+p2 <- ggplot(data = ideal) +
+        geom_point(aes(x = time, y = ts), col = "red") +
+        geom_point(aes(x = time, y = (ts + 0.035)), 
                    col = "black", shape = 1, size = 5) +
-        geom_text(aes(x = date, y = (number + 0.05)), 
+        geom_text(aes(x = time, y = (ts + 0.035)), 
+                  label = c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10"), size = 3) +
+        labs(title = "Time series\nof experiment", x = "time (h)", y = "pressure (bar)") +
+        scale_y_continuous(limits = c(0.9, 1.9)) +
+        JT.theme
+p3 <- ggplot(data = EUimm) +
+        geom_point(aes(x = date, y = number), col = "red") +
+        geom_point(aes(x = date, y = (number + 0.035)), 
+                   col = "black", shape = 1, size = 5) +
+        geom_text(aes(x = date, y = (number + 0.035)), 
                   label = c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"), size = 3) +
         labs(title = "Time series\nEU-immigrants to the UK", x = "date", y = "2009 Q4 = 1.0") +
         scale_y_continuous(limits = c(0.9, 1.9)) +
         JT.theme
-grid.arrange(p1, p2, nrow = 1)
+grid.arrange(p1, p2, p3, nrow = 1)
 @
 
-\begin{marginfigure}[-8cm]
-\includegraphics[width=1\textwidth]{PTS-independency2}
+\begin{figure}
+\includegraphics[width=0.8\textwidth]{PTS-independency2}
 \caption{Sequence of observations}
 \label{fig:independency2}
 \setfloatalignment{b}
-\end{marginfigure}
+\end{figure}
 
 The uncertainty about independence has serious consequences. Many standard statistical methods (e.g. linear regression) can only be applied securely on condition that the observations are independent.
 
