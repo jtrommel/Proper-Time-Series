@@ -218,13 +218,13 @@ ggplot(data = stationary, aes(x = t)) +
 There are different tests to check if a time series is stationary: the \emph{Ljung-Box}-test, the \emph{Augmented Dickey–Fuller (ADF)}-test, the \emph{Kwiatkowski-Phillips-Schmidt-Shin (KPSS)}-test.
 
 <<>>=
-# Ljung-Box test: stationary for p>0/05
+# Ljung-Box test: stationary for p > 0.05
 Box.test(stationary$ydice, type="Ljung-Box")
 Box.test(stationary$ynorm, type="Ljung-Box")
-# Augmented Dickey-Fuller: stationary for p<0.05
+# Augmented Dickey-Fuller: stationary for p < 0.05
 adf.test(stationary$ydice)
 adf.test(stationary$ynorm)
-# Kwiatkowski-Phillips-Schmidt-Shin test: stationary for p>0.05
+# Kwiatkowski-Phillips-Schmidt-Shin test: stationary for p > 0.05
 kpss.test(stationary$ydice, null="Trend")
 kpss.test(stationary$ynorm, null="Trend")
 @
@@ -269,7 +269,7 @@ As we can see, the new values ($t>100$) fall (almost) within the predicted confi
 \newpage
 \section{Independency}\index{independency}
 
-When we look at Figure~\ref{fig:independency1}, both graphs have the same appearance. The graph on the left shows measurements of temperature (\degree C) and pressure (bar) of a gas (in this case 35 g (= 1.208 mole) of dry air) within a cilinder with volume V=25 l. It is a standard experiment in physics checking the ideal gas law which says that temperature and pressure should be proportional. The graph on the right shows the proportion of EU-immigrants to the UK per quarter, starting in Q4 of 2009 and ending in Q2 of 2012. The reference is the starting value (Q4 of 2009).
+In Figure~\ref{fig:independency1}, we see two graphs with more or less the same appearance. The graph on the left shows measurements of temperature (\degree C) and pressure (bar) of a gas (in this case 35 g (= 1.208 mole) of dry air within a cilinder with volume V=25 l). It is a standard experiment in physics checking the ideal gas law which says that temperature and pressure should be proportional. The graph on the right shows the proportion of EU-immigrants to the UK per quarter, starting in Q4 of 2009 and ending in Q2 of 2012. The reference is the starting value (Q4 of 2009).
 
 <<label=independency1, fig=TRUE, include=FALSE, echo=FALSE>>=
 #
@@ -306,16 +306,23 @@ grid.arrange(p1, p2, nrow = 1)
 \setfloatalignment{b}
 \end{figure}
 
-The graphs look similar but there is a big difference. A proper scientific experiment is done carefully using the \emph{design of experiments}-methodology\index{design of experiments}\index{DOE!Design of Experiments}. One of the most important aspects is to make sure that each set of observations of temperature and pressure is made \emph{independently} of previous or future measurements. This is done by \emph{randomisation}\index{randomisation}. Instead of starting with a temperature of 0\degree C and stepswise increasing the temperature with 20\degree C until we reach 180\degree C (the \emph{standard order}), we will do this in a random way (the \emph{run order}).
+The graphs look similar but there is a big difference. A proper scientific experiment uses the \emph{design of experiments}-methodology\index{design of experiments}\index{DOE!Design of Experiments}. One of its most important aspects is to make sure that each set of observations of temperature and pressure is made \emph{independently} of previous or future measurements. This is done by \emph{randomisation}\index{randomisation}. Instead of starting with a temperature of 0\degree C and stepswise increasing the temperature with 20\degree C until we reach 180\degree C (the \emph{standard order}\index{standard order}), we will do this in a random way (the \emph{run order}\index{run order}).
 
 <<>>=
 run.order <- sample(seq(0, 180, 20))
 run.order
 @
 
-We start at 80\degree C, then we go to 100\degree C, then to 140\degree C and then we cool to 20\degree C etc. It will be obvious that this requires much more time for heating, cooling, reheating etc. than when we use the standard order. However, it is worth it because in this way we eliminate the possible influence of a steady increase in temperature on the measurement. In short: we set up our experiment is such a way that we the obeservations are \emph{independent}\index{independency} of each other (Figure~\ref{fig:independency2}-left). Plotting the measurement of pressure as a function of the moment in time that it was recorded, and assuming it takes 1 hour between two consecutive measurements, we get something like Figure~\ref{fig:independency2}-middle\sidenote{In reality the measurements will probably not be nicely evenly spaced}.
+We start at 80\degree C, then we go to 100\degree C, then to 140\degree C and then we cool to 20\degree C etc. It is obvious that this requires much more time for heating, cooling, reheating etc. than when we use the standard order. However, it is worth it because in this way we eliminate the possible influence of a steady increase in temperature on the measurement (e.g. it might steadily change the volume of the gascontainer due to expansion). In short: we set up our experiment is such a way that we the observations are \emph{independent}\index{independency} of each other (Figure~\ref{fig:independency2}-left). Plotting the measurement of pressure as a function of the moment in time that it was recorded, and assuming it takes 1 hour between two consecutive measurements, we get something like Figure~\ref{fig:independency2}-middle\sidenote{In reality the measurements will probably not be nicely evenly spaced}. 
 
-With the time series of the EU-migrants to the UK this is not possible. We cannot design our measurements in such a way that the first measurement will be taken in June 2010 (Q2 of 2010), the next measurement in December 2011 (Q4 of 2011), the third in December 2009 (Q4 of 2009) etc. Either the future is not accessible, or if we wait, the past cannot be redone. We have not choice but to make our observations starting in Q4 2009, ending in Q2 2012 and this every quarter in its proper turn (Figure~\ref{fig:independency2}-right). In short we cannot guarantee that the observations in a time series are \emph{independent}. This does not however mean that all measurements as a function of time suffer from dependency!
+We created the \emph{run order}\index{run order} by making a random permutation of the temperatures 0\degree C, 20\degree C, ..., 180\degree C. This makes it random, but not independent. Independency is only guaranteed when we do a random pick with \emph{replacement}. This is the second essential component in the design of an experiment: \emph{replication}\index{replication}. A \emph{run order with replacement}\index{run order!with replacement} for a total of 100 experiments can be generated in \textbf{\textsf{R}} and gives Figure~\ref{fig:independency2}-right.
+
+<<>>=
+run.order.rep <- data.frame(time = seq(1, 100),
+                            temp = sample(seq(0, 180, 20),
+                                          size = 100,
+                                          replace = TRUE))
+@
 
 <<label=independency2, fig=TRUE, include=FALSE, echo=FALSE>>=
 p1 <- ggplot(data = ideal) +
@@ -335,17 +342,13 @@ p2 <- ggplot(data = ideal) +
                    col = "black", shape = 1, size = 5) +
         geom_text(aes(x = time, y = (ts + 0.035)), 
                   label = c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10"), size = 3) +
-        labs(title = "Time series\nof experiment", x = "time (h)", y = "pressure (bar)") +
+        labs(title = "Experiment\nrun order", x = "time (h)", y = "pressure (bar)") +
         scale_y_continuous(limits = c(0.9, 1.9)) +
         JT.theme
-p3 <- ggplot(data = EUimm) +
-        geom_point(aes(x = date, y = number), col = "red") +
-        geom_point(aes(x = date, y = (number + 0.035)), 
-                   col = "black", shape = 1, size = 5) +
-        geom_text(aes(x = date, y = (number + 0.035)), 
-                  label = c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"), size = 3) +
-        labs(title = "Time series\nEU-immigrants to the UK", x = "date", y = "2009 Q4 = 1.0") +
-        scale_y_continuous(limits = c(0.9, 1.9)) +
+p3 <- ggplot(data = run.order.rep) +
+        geom_point(aes(x = time, y = temp)) +
+        labs(title = "Experiment\nrun order with replacement", x = "time (h)", y = "temperature (°C)") +
+        scale_y_continuous(limits = c(-20, 200)) +
         JT.theme
 grid.arrange(p1, p2, p3, nrow = 1)
 @
@@ -357,9 +360,34 @@ grid.arrange(p1, p2, p3, nrow = 1)
 \setfloatalignment{b}
 \end{figure}
 
-The uncertainty about independence has serious consequences. Many standard statistical methods (e.g. linear regression) can only be applied securely on condition that the observations are independent.
+This looks very much like a \emph{stationary} time series and the \emph{Ljung-Box}-test confirms this.
 
-For general time series it is prudent to suppose that the measurements are \emph{not independent}\index{not independent}.
+<<>>=
+Box.test(run.order.rep$temp, type = "Ljung-Box")
+@
+\medskip
+With the time series of the EU-migrants to the UK this is not possible. We cannot design our measurements in such a way that the first measurement will be taken in June 2010 (Q2 of 2010), the next mea\-surement in December 2011 (Q4 of 2011), the third in December 2009 (Q4 of 2009) etc. Either the future is not accessible, or if we wait, the past cannot be redone. We have not choice but to make our observations starting in Q4 2009, ending in Q2 2012 and this every quarter in its proper turn (Figure~\ref{fig:independency2}-right). Time is an absolute reference point that will only occurs once. Therefore we cannot guarantee that the observations in a time series are \emph{independent}.
+
+<<label=independency3, fig=TRUE, include=FALSE, echo=FALSE>>=
+ggplot(data = EUimm) +
+      geom_point(aes(x = date, y = number), col = "red") +
+      geom_point(aes(x = date, y = (number + 0.035)), 
+                  col = "black", shape = 1, size = 5) +
+      geom_text(aes(x = date, y = (number + 0.035)), 
+                  label = c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"), size = 3) +
+      labs(title = "Time series\nEU-immigrants to the UK", x = "date", y = "2009 Q4 = 1.0") +
+      scale_y_continuous(limits = c(0.9, 1.9)) +
+      JT.theme
+@
+
+\begin{figure}
+\includegraphics[width=0.8\textwidth]{PTS-independency3}
+\caption{Sequence of observations in time series}
+\label{fig:independency3}
+\setfloatalignment{b}
+\end{figure}
+
+For general time series it is prudent to suppose that the measurements are \emph{not independent}\index{not independent}.The uncertainty about independence has serious consequences because many standard statistical methods (e.g. linear regression) can only be applied securely on condition that the observations are independent.
 
 \newpage
 For example: Figure~\ref{fig:Amtrakdata} shows the monthly number (in thousands) of people who used the Amtrak railway system between Januari 1991 up to March 2004.
