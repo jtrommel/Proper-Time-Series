@@ -137,7 +137,54 @@ TRJ.FFT <- function(signal.df) {
 
 \section{Time series}\index{time series}
 
-A \emph{time series} is a sequence of values of a quantity $y$ taken in a strict time order.
+A \emph{time series} is a sequence of values of a quantity $y$ taken at consecutive points in time, in a  strict order. Often the points in time are absolute: Monday March 18th 2019, Tuesday March 19th 2019, etc. The interval between these points in time is usually constant. It can be nanoseconds or millenia. With each point in time we can associate a time index\index{time index} going from $1$ for the first point in time, to $n$ for the last point in time of our data series.
+
+<<label=startgrafiek, fig=TRUE, include=FALSE, echo=FALSE>>=
+# Number of elements in the data set
+  N <- 1000
+# Random number generator seed
+  set.seed(2019)
+# error parameters
+  mu <- 0
+  sigma <- 3
+# trend model parameters
+  b0 <- 0
+  b1 <- 0.01
+  b2 <- 0.00005
+# seasonality 1
+  amp1 <- 3*sigma
+  teta1 <- 0
+  T1 <- N/9
+# seasonality 2
+  amp2 <- sigma
+  teta2 <- pi/3
+  T2 <- N/39
+# constant for combined additive/multiplicative time-series
+  c <- 0.05
+#
+# setting up the different components
+#
+  construct <- data.frame(t = seq(1:N),
+                            error = rnorm(N, mean = mu, sd = sigma))
+  construct %>% mutate(trend = (b0 + b1*t +b2*t^2)) -> construct
+  construct %>% mutate(season1 = amp1*sin(2*pi*t/T1 + teta1)) -> construct
+  construct %>% mutate(season2 = amp2*sin(2*pi*t/T2 + teta2)) -> construct
+#
+# contructing the additive time series
+construct %>% mutate(add = error + trend + season1 + season2) -> construct
+ggplot(data = construct, aes(x = t)) +
+    geom_line(aes(y = add), size = 0.35, color="red") +
+    scale_y_continuous(limits= c(-25, 75)) +
+    labs(y="y") +
+    JT.theme
+@
+  
+\begin{marginfigure}[-2cm]
+\includegraphics[width=1\textwidth]{PTS-startgrafiek}
+\caption{}
+\label{fig:startgrafiek}
+\setfloatalignment{b}
+\end{marginfigure}
 
 \newthought{Examples}
 \medskip
@@ -149,23 +196,79 @@ A \emph{time series} is a sequence of values of a quantity $y$ taken in a strict
 	\item the amount of rainfall in a specific place within a period of one month
 \end{itemize}
 
-Figure~\ref{fig:Microsoft1} gives the graphical representation of a time series.
+The quantity $y$ that we measure at index point $t$, we denote by $y_{t}$. Usually $y_{t}$ will depend in some measure on chance: Boeing's share price can suddenly plummet when one of its airplanes has an accident, a temperature measurement can be somewhat lower because someone left open a door, ... Therefore we consider the measurement $y$ to be one of many possible values of a \emph{chance variable} $Y$. This is true for the value $y_{t}$ at every point in time $t$: it is the value taken by the chance variable $Y_{t}$ at time $t$.
 
-\begin{marginfigure}[-2cm]
-\includegraphics[width=1\textwidth]{"Graphics/Microsoft1"}
+\begin{marginfigure}[-5cm]
+\includegraphics[width=1\textwidth]{"PTS-startgrafiekchance"}
 \caption{}
-\label{fig:Microsoft1}
+\label{fig:startgrafiekchance}
 \setfloatalignment{b}
 \end{marginfigure}
 
+In Figure~\ref{fig:startgrafiekchance} we can see that the red graph is only one of many (infinite) possible graphs. We have included 4 alternatives (grey), and a detail for $t=500$ shows some representations of $Y_{500}$.
+
+% <<label=startgrafiekchance, fig=TRUE, include=FALSE, echo=FALSE>>=
+% construct %>% mutate(add1 = rnorm(N, mean = mu, sd = sigma) + trend + season1 + season2) -> construct
+% construct %>% mutate(add2 = rnorm(N, mean = mu, sd = sigma) + trend + season1 + season2) -> construct
+% construct %>% mutate(add3 = rnorm(N, mean = mu, sd = sigma) + trend + season1 + season2) -> construct
+% construct %>% mutate(add4 = rnorm(N, mean = mu, sd = sigma) + trend + season1 + season2) -> construct
+% p1 <- ggplot(data = construct, aes(x = t)) +
+%     geom_line(aes(y = add1), size = 0.75, color="grey") +
+%     geom_line(aes(y = add2), size = 0.75, color="grey") +
+%     geom_line(aes(y = add3), size = 0.75, color="grey") +
+%     geom_line(aes(y = add4), size = 0.75, color="grey") +
+%     geom_line(aes(y = add), size = 0.25, color="red") +
+%     scale_y_continuous(limits= c(-25, 75)) +
+%     labs(y="y") +
+%     JT.theme
+% p2 <- ggplot(data = construct, aes(x = t)) +
+%     geom_point(aes(y = add1), size = 0.75, color="grey") +
+%     geom_point(aes(y = add2), size = 0.75, color="grey") +
+%     geom_point(aes(y = add3), size = 0.75, color="grey") +
+%     geom_point(aes(y = add4), size = 0.75, color="grey") +
+%     geom_point(aes(y = add), size = 0.25, color="red") +
+%     scale_x_continuous(limits = c(499, 501), breaks = c(500)) +
+%     scale_y_continuous(limits = c(0, 50)) +
+%     labs(y="y") +
+%     JT.theme
+% p3 <- p1 + annotation_custom(ggplotGrob(p2), xmin = 350, xmax = 550, ymin = -30, ymax = 0)
+% p3
+% ggsave("PTS-startgrafiekchance.pdf")
+% @
+
+When we treat $Y_{t}$ as a chance variable, it follows that it has a probability distribution, and the typical parameters such as a mean ($\mu_{t}$), a standard deviation ($\sigma_{t}$), etc. These parameters can change so that $\mu_{1} \neq \mu_{2}$ and $\sigma_{1} \neq \sigma_{2}$. In general we can say that:
+\begin{equation}
+	\mu_{t}=\mu_{t}(t) \quad and \quad \sigma_{t}=\sigma_{t}(t)
+\end{equation}
+
+\section{The time series as a sample}
+
+For most time series we do not have access to all possible values that $Y_{t}$ can take. We usually have only one value $y_{t}$ at each time point $t$. As an estimate of the mean at time point $t$ we can use the observed value $y_{t}$, but this is a very crude estimation. 
+
+In some time series we could have the, visual, impression that our observations $y_{t}$ seem to fluctuate around a constant value. In these conditions we can make the assumption that the mean does not change with $t$. A time series with this behaviour is called \emph{stationary in the mean}\index{stationary!in the mean}, and we can estimate this constant value of $\mu$ from the sample mean:
+\begin{equation}
+	\bar{y} = \frac{1}{n}\sum_{i=1}^{i=n}y_{i}
+\end{equation}
+
+The same argument can be used for the \emph{variance} of $Y_{t}$. If our sample consists of one value $y_{t}$ for every time point $t$ we cannot calculate $var(Y_{t})$.
+
+In some time series we can simplify the situation by assuming that the population variance $\sigma^{2}$ is a constant, and that we can estimate it from the sample variance:
+\begin{equation}
+	\sigma^{2} = \frac{1}{n-1}\sum_{i=1}^{i=n}\left( y_{i} - \bar{y} \right)^{2}
+\end{equation}
+
+A time series where the variance is a constant is called \emph{stationary in the variance}\index{stationary in the variance}\index{stationary!in the variance}.
+
+A time series that is \emph{stationary in the mean} and \emph{stationary in the variance} is called \emph{second order stationary}\index{second order stationarity}\index{stationary!second order}. The idea of \emph{stationarity} will play an important role when we want to use the time series to make prediction, to make a forecast.
+
 \section{The trouble with forecasting}
 
-Forecasting, by definition, is about the future: you are stepping into unknown territory and this brings with it Niels Bohr's warning:
+Forecasting\index{forecast}, by definition, is about the future: you are stepping into unknown territory and this brings with it Niels Bohr's warning:
 \begin{quotation}
  ''It is very hard to predict, especially the future"
 \end{quotation}
 
-Because we, humans, have the privilege of vision, we have the ability to see patterns. In Figure~\ref{fig:Microsoft1} we can see that the observations of $y$ lie approximately within the blue region (Figure~\ref{fig:Microsoftextra}-left). We also have an inbuilt tendency to extrapolate. Knowing only the data given in Figure~\ref{fig:Microsoft1} we are tempted to make assumptions for what lies in the future and thus, to make a forecast (Figure~\ref{fig:Microsoftextra}-middle). Those who are very convinced of their predictive powers, could even imagine a pattern in the wiggly bits of the data, and come up with an even more detailed forecast (Figure~\ref{fig:Microsoftextra}-right).
+Because we, humans, have the privilege of vision, we have the ability to see patterns. In Figure~\ref{fig:Microsoftextra}-left we can see that the observations of $y$ lie approximately within the blue region.  We also have an inbuilt tendency to extrapolate. Knowing only the data given in Figure~\ref{fig:Microsoftextra}-left we are tempted to make assumptions for what lies in the future and thus, to make a forecast (Figure~\ref{fig:Microsoftextra}-middle). Those who are very convinced of their predictive powers, could even imagine a pattern in the wiggly bits of the data, and come up with an even more detailed forecast (Figure~\ref{fig:Microsoftextra}-right).
 
 \begin{figure*}
 \includegraphics[width=1\textwidth]{"Graphics/Microsoftextra"}
@@ -174,25 +277,29 @@ Because we, humans, have the privilege of vision, we have the ability to see pat
 \setfloatalignment{b}
 \end{figure*}
 
-\begin{marginfigure}[5cm]
+Sadly, we would have been completely wrong. The actual evolution of this particular time series was completely different from what we expected (Figure~\ref{fig:Microsoft5}).
+
+\begin{marginfigure}[0cm]
 \includegraphics[width=1\textwidth]{"Graphics/Microsoft5"}
 \caption{}
 \label{fig:Microsoft5}
 \setfloatalignment{b}
 \end{marginfigure}
 
-Sadly, we would have been completely wrong. The actual evolution of this particular time series was completely different from what we expected (Figure~\ref{fig:Microsoft5}).
+Figure~\ref{fig:Microsoftextra} shows the time series of the value of Microsoft shares from 01-01-1998 up to 31-03-2000. Then, in April 2000, share prices dropped 15.6 percent (Figure~\ref{fig:Microsoft5}) when it announced disappointing earnings and took a massive \$900 million writedown due to unsold copies of its mobile operating system ''Surface RT". Forecasting of share prices based on their time series are notoriously difficult, and the example should show us that our ''intuition" is not a good guide for forecasting.
 
-Figure~\ref{fig:Microsoft1} shows the time series of the value of Microsoft shares from 01-01-1998 up to 31-03-2000. Then, in April 2000, share prices dropped 15.6 percent (Figure~\ref{fig:Microsoft5}) when it announced disappointed earnings and took a massive \$900 million writedown due to unsold copies of its mobile operating system ''Surface RT". Forecasting of share prices based on their time series are notoriously difficult, but the example should show us that our ''intuition" is not a good guide for forecasting.
-
-\section{Stationary time series}\index{stationary}\index{time series!stationary}
-What should a time series look like so that we can make confident forecasts? What should the values from the past look like so that they can safely be extended to the future? They should be ''the same", which means that if we take a sample of n observations starting from time index $t_{1}$ up to time index $t_{1+n}$, and we take another sample of n observations starting from time index $t_{2}$ up to time index $t_{2+n}$ they should look \emph{the same}. This does not mean they will be indentical, but that they have the same underlying nature. Statistics gives us the vocabulary to translate these general words into something that we can check. 
-
+\section{The ideal time series for forecasting}\index{stationary}\index{time series!stationary}
+What should a time series look like so that we can make confident forecasts? What should the values from the past look like so that they can \emph{safely be extended to the future}? They should be ''the same", which means that if we take a sample of N observations starting from time index $t_{1}$ up to time index $t_{1+N}$, and we take another sample of N observations starting from time index $t_{2}$ up to time index $t_{2+N}$ they should look \emph{the same}. This does not mean they will be indentical, but that they have the same underlying nature. The underlying structure can be represented by statistical properties:
 \begin{itemize}
-	\item We say that a time series is \emph{stationary in the mean}\index{stationary!in the mean} when $\overline{y_{t_{1}}}=\frac{\sum_{i=1}^{i=n}y_{t1}}{n} = \overline{y_{t_{2}}}=\frac{\sum_{i=1}^{i=n}y_{t2}}{n}=cnst$ for any $t_{1}$ and $t_{2}$ we choose. This is also called \emph{first order stationary}\index{stationarity!first order}
-	\item A time series is \emph{stationary in the variance}\index{stationary!in the variance} when $var({y_{t_{1}}} \ldots {y_{t_{1+n}}}) = var({y_{t_{2}}} \ldots {y_{t_{2+n}}})$ for any $t_{1}$ and $t_{2}$ we choose. A time series that is stationary in the mean and in the variance is called \emph{second order stationary}\index{stationarity!second order})
-	\item A time series is \emph{stationary in the $n^{th}$-order}\index{stationary!in the $n^{th}$-order} when moments up to the $n^{th}$-moment are constant.
+	\item the time series should be \emph{stationary in the mean}. In that case the sample mean of the time series from time index $t_{1}$ up to time index $t_{1+N}$ will be (more or less) the same as the sample mean of the time series from time index $t_{2}$ up to time index $t_{2+N}$
+	\item the time series should be \emph{stationary in the variance}. In that case the sample variance of the time series from time index $t_{1}$ up to time index $t_{1+N}$ will be (more or less) the same as the sample variance of the time series from time index $t_{2}$ up to time index $t_{2+N}$
+	\item or more general: the time series should be \emph{second order stationary}
 \end{itemize}
+
+We can check if a time series has \emph{second order stationarity} using the concepts of \emph{autocovariance} and \emph{autocorrelation} of a time series. In general, when we have two random variables $Z_{1}$ and $Z_{2}$ the \emph{covariance} of these two is given by:
+\begin{equation}
+	cov(Z_{1},Z_{2})= E\left[ (Z_{1} - \mu_{Z_{1}})(Z_{2} - \mu_{Z_{2}}) \right] 
+\end{equation}
 
 We can easily generate a stationary time series: if the sequential observations $y_{t}$ are \emph{independent}\index{independence} and all come from an \emph{identical}\index{indentical} \emph{probability distribution}\index{IID = Independent Identical Distribution} the result will be a stationary time series. \textbf{\textsf{R}} can gererate these easily. For example we can simulate the throw of a dice: we use the \textit{sample}-function from \textbf{\textsf{R}} and, by replacing each drawn number, we make sure that each throw is independent. Another possibility to construct a stationary time series is the random draw from a normal distribution. \textbf{\textsf{R}}'s (pseudo) random number generator takes care of the independency, and we use the same normal distribution.
 
@@ -231,7 +338,7 @@ kpss.test(stationary$ynorm, null="Trend")
 
 Because in Figure~\ref{fig:stationary} the red lines switch between integer values, we can conclude that they come from the dice experiment. But both graphs have a very irregular look. And it might come as a surprise that we consider these \emph{stationary} time series excellent material for forecasting! On the contrary: it seems that their behaviour is our worst nightmare when we intend to predict what will happen after time index 100.
 
-However, the situation is really not that bad! Often it is OK to assume that these stationary time series come from an normal distribution. As estimate for the mean we take the sample mean, as estimate for the variance, the sample variance. Using these two we can calculate the $\alpha$ confidence interval. For $\alpha=95\%$ we get Figure~\ref{fig:stationaryCI}.
+However, the situation is really not that bad! Often it is OK to assume that these stationary time series come from an normal distribution. As estimate for the mean we take the sample mean, as estimate for the variance, the sample variance. Using these two we can calculate the $\alpha$ confidence interval. For $\alpha=95\%$ we get Figure~\ref{fig:stationaryCI}-left.
 
 <<label=stationaryCI, fig=TRUE, include=FALSE, echo=FALSE>>=
 mu.dice <- mean(stationary$ydice)
@@ -243,29 +350,109 @@ sd.norm <- sd(stationary$ynorm)
 low.lim.norm <- mu.norm - 1.96*sd.norm
 high.lim.norm <- mu.norm + 1.96*sd.norm
 N.ext <- 25
-stationary.ext <- data.frame(t = seq((N + 1),(N + N.ext)), ydice = sample(c(1:6), N.ext, replace = TRUE), ynorm = rnorm(N.ext,3.5, 1))
-ggplot() +
+stationary.ext <- data.frame(t = seq((N + 1),(N + N.ext)), ydice = mu.dice, lwr.ydice = low.lim.dice, upr.ydice = high.lim.dice, ynorm = mu.norm, lwr.ynorm = low.lim.norm, upr.ynorm = high.lim.norm)
+p1 <- ggplot() +
   geom_line(data = stationary, aes(x = t, y = ydice), col = "red") +
   geom_line(data = stationary, aes(x = t, y = ynorm), col = "blue") +
-  geom_line(data = stationary.ext, aes(x = t, y = ydice), col = "red", lty = 2) +
-  geom_line(data = stationary.ext, aes(x = t, y = ynorm), col = "blue", lty = 2) +
-  labs(title = "Confidence intervals for prediction of stationary time series", x = "t", y = "result") +
-  geom_hline(yintercept = low.lim.dice, col = "red") +
-  geom_hline(yintercept = high.lim.dice, col = "red") +
-  geom_hline(yintercept = low.lim.norm, col = "blue") +
-  geom_hline(yintercept = high.lim.norm, col = "blue") +
-  scale_y_continuous(limits=c(-1, 7)) +
+  geom_line(data = stationary.ext, aes(x = t, y = ydice), color = "red", linetype = 2) +
+  geom_line(data = stationary.ext, aes(x = t, y = ynorm), color = "blue", linetype = 2) +
+  labs(title = "Prediction of stationary time series\n(assumption: normal distribution)", x = "t", y = "result") +
+  geom_ribbon(data = stationary.ext, aes(x = t, ymin = lwr.ydice, ymax = upr.ydice), fill = "red", alpha = 0.3) +
+  geom_ribbon(data = stationary.ext, aes(x = t, ymin = lwr.ynorm, ymax = upr.ynorm), fill = "blue", alpha = 0.3) +
+  scale_y_continuous(limits=c(-1, 8)) +
   JT.theme
 @
 
-\begin{marginfigure}
+As we can see, the new values ($t>100$) fall (almost) within the predicted confidence intervals (red for the dice experiment, blue for the normal sampling experiment). And while it is true that this does not give us accurate predictions on an experiment-by-experiment basis, it gives a general idea of what we can expect. 
+
+We could of course also fit a linear model to these time series:
+
+<<>>=
+mod.dice <- lm(ydice ~ t, data = stationary)
+tidy(mod.dice)
+mod.norm <- lm(ynorm ~ t, data = stationary)
+tidy(mod.norm)
+@
+
+We can see that the p-values for the slope (\Sexpr{round(tidy(mod.dice)$p.value[2], 3)} and \Sexpr{round(tidy(mod.norm)$p.value[2], 3)}) are well above 0.05, so that there is no reason to reject the null-hypothesis that the slope = 0. This means that in both cases the predicted value in the future will be equal to the intercept value of the models (\Sexpr{round(tidy(mod.dice)$estimate[1], 3)} and \Sexpr{round(tidy(mod.norm)$estimate[1], 3)}). We can calculate a 95\% confidence interval for this model (Figure~\ref{fig:stationaryCI}-right).
+
+<<label=stationaryCI, fig=TRUE, include=FALSE, echo=FALSE>>=
+intercept.dice <- tidy(mod.dice)$estimate[1]
+intercept.norm <- tidy(mod.norm)$estimate[1]
+alpha <- 0.05
+t0 <- qt((1 - alpha/2), N - 2)
+stationary.pred <- data.frame(t = seq((N + 1),(N + N.ext)), 
+                              ydice = intercept.dice,
+                              lwr.dice = 0,
+                              upr.dice = 0,
+                              ynorm = intercept.norm,
+                              lwr.norm = 0,
+                              upr.norm = 0)
+tbar <- mean(stationary$t)
+SStt <- (N-1)*var(stationary$t)
+stationary.pred$lwr.dice <- intercept.dice - t0*sqrt(var(stationary$ydice)*(1 + (1/N) + ((stationary.pred$t - tbar)^2)/SStt))
+stationary.pred$upr.dice <- intercept.dice + t0*sqrt(var(stationary$ydice)*(1 + (1/N) + ((stationary.pred$t - tbar)^2)/SStt))
+stationary.pred$lwr.norm <- intercept.norm - t0*sqrt(var(stationary$ynorm)*(1 + (1/N) + ((stationary.pred$t - tbar)^2)/SStt))
+stationary.pred$upr.norm <- intercept.dice + t0*sqrt(var(stationary$ynorm)*(1 + (1/N) + ((stationary.pred$t - tbar)^2)/SStt))
+p2 <- ggplot() +
+  geom_line(data = stationary, aes(x = t, y = ydice), col = "red") +
+  geom_line(data = stationary.pred, aes(x = t, y = ydice), col = "red", linetype = 2) +
+  geom_ribbon(data = stationary.pred, aes(x = t, ymin = lwr.dice, ymax = upr.dice), fill = "red", alpha = 0.3) +
+  geom_line(data = stationary, aes(x = t, y = ynorm), col = "blue") +
+  geom_line(data = stationary.pred, aes(x = t, y = ynorm), col = "blue", linetype = 2) +
+  geom_ribbon(data = stationary.pred, aes(x = t, ymin = lwr.norm, ymax = upr.norm), fill = "blue", alpha = 0.3) +
+  labs(title = "Prediction of stationary time series\n(linear model with slope = 0)", x = "t", y = "result") +
+  scale_y_continuous(limits=c(-1, 8)) +
+  JT.theme
+grid.arrange(p1, p2, nrow=1)
+@
+
+\begin{figure}
 \includegraphics[width=1\textwidth]{PTS-stationaryCI}
 \caption{Confidence intervals of forecasted values}
 \label{fig:stationaryCI}
 \setfloatalignment{b}
-\end{marginfigure}
+\end{figure}
 
-As we can see, the new values ($t>100$) fall (almost) within the predicted confidence intervals (red for the dice experiment, blue for the normal sampling experiment). And while it is true that this does not give us accurate predictions on an experiment-by-experiment basis, it gives a general idea of what we can expect. At this moment we can assure the reader that better prediction methods are available for stationary time series!
+\section{Dependency}
+
+\subsection{The random walk}\index{random walk}\index{dependency!random walk}
+
+A stationary time series requires that the observations are independent. What does a time series look like when this is not true? An example is ''persistence" in weather forecasting: if it is sunny today with a temperature of 22\degree C, the forecast for tomorrow is ''sunny with 22\degree C". 
+
+A simple model for such a time series would be one in which the observation at time index $t$ is equal to the previous observation (at time index $(t-1)$) plus a random component.
+\begin{equation}
+	y_{t} = y_{t-1} + \epsilon_{t}
+\label{eq:randomwalk}
+\end{equation}
+
+Of course we will have to define the starting point $y_{0}$ and the type of the random component $\epsilon$. Let's set $y_{0}=0$ and $\epsilon$ randomly taken from a standard normal distribution. Figure~\ref{fig:randomwalk1} shows 3 graphs gene\-rated with Equation~\ref{eq:randomwalk} (the random generator in \textbf{\textsf{R}} causes these graphs to differ).
+
+<<label=randomwalk1, fig=TRUE, include=FALSE, echo=FALSE>>=
+set.seed(2019)
+n <- 3
+N <- 100
+walk <- data.frame(t = rep(seq(1, N), n), serie = rep(c(1:n), each = N), y = 0)
+alpha <- 0.95
+for (j in seq(1,n)) {
+  for (i in seq(2, N)) {
+    walk$y[(j-1)*N + i] <- alpha*walk$y[(j-1)*N + i - 1] + rnorm(1, 0, 1)
+  }
+}
+ggplot(data = walk) + 
+  geom_line(aes(x = t, y = y, col = as.factor(serie))) +
+  labs(title = "3 random walks", x = "t", y = "y") +
+  JT.theme +
+  theme(legend.title = element_blank())
+@
+
+\begin{figure}
+\includegraphics[width=0.9\textwidth]{PTS-randomwalk1}
+\caption{3 different random walks}
+\label{fig:randomwalk1}
+\setfloatalignment{b}
+\end{figure}
+
 \newpage
 \section{Independency}\index{independency}
 
