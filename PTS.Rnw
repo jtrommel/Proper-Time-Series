@@ -207,34 +207,6 @@ The quantity $y$ that we measure at index point $t$, we denote by $y_{t}$. Usual
 
 In Figure~\ref{fig:startgrafiekchance} we can see that the red graph is only one of many (infinite) possible graphs. We have included 4 alternatives (grey), and a detail for $t=500$ shows some representations of $Y_{500}$.
 
-% <<label=startgrafiekchance, fig=TRUE, include=FALSE, echo=FALSE>>=
-% construct %>% mutate(add1 = rnorm(N, mean = mu, sd = sigma) + trend + season1 + season2) -> construct
-% construct %>% mutate(add2 = rnorm(N, mean = mu, sd = sigma) + trend + season1 + season2) -> construct
-% construct %>% mutate(add3 = rnorm(N, mean = mu, sd = sigma) + trend + season1 + season2) -> construct
-% construct %>% mutate(add4 = rnorm(N, mean = mu, sd = sigma) + trend + season1 + season2) -> construct
-% p1 <- ggplot(data = construct, aes(x = t)) +
-%     geom_line(aes(y = add1), size = 0.75, color="grey") +
-%     geom_line(aes(y = add2), size = 0.75, color="grey") +
-%     geom_line(aes(y = add3), size = 0.75, color="grey") +
-%     geom_line(aes(y = add4), size = 0.75, color="grey") +
-%     geom_line(aes(y = add), size = 0.25, color="red") +
-%     scale_y_continuous(limits= c(-25, 75)) +
-%     labs(y="y") +
-%     JT.theme
-% p2 <- ggplot(data = construct, aes(x = t)) +
-%     geom_point(aes(y = add1), size = 0.75, color="grey") +
-%     geom_point(aes(y = add2), size = 0.75, color="grey") +
-%     geom_point(aes(y = add3), size = 0.75, color="grey") +
-%     geom_point(aes(y = add4), size = 0.75, color="grey") +
-%     geom_point(aes(y = add), size = 0.25, color="red") +
-%     scale_x_continuous(limits = c(499, 501), breaks = c(500)) +
-%     scale_y_continuous(limits = c(0, 50)) +
-%     labs(y="y") +
-%     JT.theme
-% p3 <- p1 + annotation_custom(ggplotGrob(p2), xmin = 350, xmax = 550, ymin = -30, ymax = 0)
-% p3
-% ggsave("PTS-startgrafiekchance.pdf")
-% @
 
 When we treat $Y_{t}$ as a chance variable, it follows that it has a probability distribution, and the typical parameters such as a mean ($\mu_{t}$), a standard deviation ($\sigma_{t}$), etc. These parameters can change so that $\mu_{1} \neq \mu_{2}$ and $\sigma_{1} \neq \sigma_{2}$. In general we can say that:
 \begin{equation}
@@ -289,6 +261,7 @@ Sadly, we would have been completely wrong. The actual evolution of this particu
 Figure~\ref{fig:Microsoftextra} shows the time series of the value of Microsoft shares from 01-01-1998 up to 31-03-2000. Then, in April 2000, share prices dropped 15.6 percent (Figure~\ref{fig:Microsoft5}) when it announced disappointing earnings and took a massive \$900 million writedown due to unsold copies of its mobile operating system ''Surface RT". Forecasting of share prices based on their time series are notoriously difficult, and the example should show us that our ''intuition" is not a good guide for forecasting.
 
 \section{The ideal time series for forecasting}\index{stationary}\index{time series!stationary}
+\label{sec:ideal}
 What should a time series look like so that we can make confident forecasts? What should the values from the past look like so that they can \emph{safely be extended to the future}? They should be ''the same", which means that if we take a sample of N observations starting from time index $t_{1}$ up to time index $t_{1+N}$, and we take another sample of N observations starting from time index $t_{2}$ up to time index $t_{2+N}$ they should look \emph{the same}. This does not mean they will be indentical, but that they have the same underlying nature. The underlying structure can be represented by statistical properties:
 \begin{itemize}
 	\item the time series should be \emph{stationary in the mean}. In that case the sample mean of the time series from time index $t_{1}$ up to time index $t_{1+N}$ will be (more or less) the same as the sample mean of the time series from time index $t_{2}$ up to time index $t_{2+N}$
@@ -296,29 +269,122 @@ What should a time series look like so that we can make confident forecasts? Wha
 	\item or more general: the time series should be \emph{second order stationary}
 \end{itemize}
 
-We can easily generate a stationary time series: if the sequential observations $y_{t}$ are \emph{independent}\index{independence} and all come from an \emph{identical}\index{identical} \emph{probability distribution}\index{IID = Independent Identical Distribution} the result will be a stationary time series. For example we can simulate the throw of a dice: we use the \textit{sample}-function from \textbf{\textsf{R}} and, by replacing each drawn number, we make sure that each throw is independent. Another possibility to construct a stationary time series is the random draw from a normal distribution. \textbf{\textsf{R}}'s (pseudo) random number generator takes care of the independency, and we use the same normal distribution.
+We can easily generate a stationary time series: if the sequential observations $y_{t}$ are \emph{Independent}\index{independence} and come from an \emph{Identical}\index{identical} \emph{probability Distribution} (abbreviated as \emph{IID}) \index{IID = Independent Identical Distribution} the result will be a stationary time series. For example we can simulate the throw of a dice: we use the \textit{sample}-function from \textbf{\textsf{R}} and, by replacing each drawn number, we make sure that each throw is independent (Figure~\ref{fig:stationarydice1}).
 
-<<label=stationary, fig=TRUE, include=FALSE, echo=FALSE>>=
-set.seed(2019)
+<<label=stationarydice1, fig=TRUE, include=FALSE, echo=FALSE>>=
 N <- 100
-stationary <- data.frame(t = seq(1,100), ydice = sample(c(1:6), N, replace = TRUE), ynorm = rnorm(N,3.5, 1))
+stationary <- data.frame(t = seq(1,N), 
+                              ydice1 = sample(c(1:6), N, replace = TRUE), 
+                              ydice2 = sample(c(1:6), N, replace = TRUE), 
+                              ydice3 = sample(c(1:6), N, replace = TRUE), 
+                              ydice4 = sample(c(1:6), N, replace = TRUE), 
+                              ydice5 = sample(c(1:6), N, replace = TRUE),
+                              ynorm1 = rnorm(N, 3.5, 1),
+                              ynorm2 = rnorm(N, 3.5, 1),
+                              ynorm3 = rnorm(N, 3.5, 1),
+                              ynorm4 = rnorm(N, 3.5, 1),
+                              ynorm5 = rnorm(N, 3.5, 1),
+                         mean.dice = 0,
+                         sd.dice = 0,
+                         mean.norm = 0,
+                         sd.norm = 0)
+stationary$mean.dice <- rowMeans(stationary[ , 2:6])
+stationary$sd.dice <- apply(stationary[,2:6], 1, FUN=sd)
+stationary$mean.norm <- rowMeans(stationary[ , 7:11])
+stationary$sd.norm <- apply(stationary[,7:11], 1, FUN=sd)
 ggplot(data = stationary, aes(x = t)) +
-  geom_line(aes(y = ydice), col = "red") +
-  geom_line(aes(y = ynorm), col = "blue") +
+  geom_line(aes(y = ydice1), col = "red") +
   scale_y_continuous(limits=c(-1, 7)) +
-  labs(title = "Examples of stationary time series", x = "t", y = "result") +
+  labs(title = "Example of stationary time series\n(uniform distribution)", x = "t", y = "result") +
+  JT.theme
+@
+
+\begin{marginfigure}[-14cm]
+\includegraphics[width=1\textwidth]{PTS-stationarydice1}
+\caption{Stationary time series: $y_{t}$}
+\label{fig:stationarydice1}
+\setfloatalignment{b}
+\end{marginfigure}
+
+The advantage of constructing your own time series, is that you can redo it! Figure~\ref{fig:stationarydice2} shows 4 other alternatives (in grey) which gives us a flavor of the possibilities of the chance variable $Y_{t}$.
+
+<<label=stationarydice2, fig=TRUE, include=FALSE, echo=FALSE>>=
+color <- c('chartreuse3', 'cornflowerblue', 'darkgoldenrod1', 'peachpuff3','mediumorchid2')
+ggplot(data = stationary, aes(x = t)) +
+  geom_line(aes(y = ydice1), col = color[1]) +
+  geom_line(aes(y = ydice2), col = color[2]) +
+  geom_line(aes(y = ydice3), col = color[3]) +
+  geom_line(aes(y = ydice4), col = color[4]) +
+  geom_line(aes(y = ydice5), col = color[5]) +
+  scale_y_continuous(limits=c(0, 7)) +
+  labs(title = "Example of stationary time series\n(uniform distribution)", x = "t", y = "result") +
+  JT.theme
+@
+
+\begin{marginfigure}[-5cm]
+\includegraphics[width=1\textwidth]{PTS-stationarydice2}
+\caption{Stationary time series: $Y_{t}$}
+\label{fig:stationarydice2}
+\setfloatalignment{b}
+\end{marginfigure}
+
+These 5 time series are clearly not identical. At time point $t=50$ we have the following values for $y_{50}$:
+<<>>=
+stationary[50, 2:6]
+@
+
+But when we calculate the mean value (red) and the standard deviation (blue) of $y_{t}$ at each time point $t$ we get Figure~\ref{fig:stationarydice3}:
+
+<<label=stationarydice3, fig=TRUE, include=FALSE, echo=FALSE>>=
+color <- c('chartreuse3', 'cornflowerblue', 'darkgoldenrod1', 'peachpuff3','mediumorchid2')
+ggplot(data = stationary, aes(x = t)) +
+  geom_line(aes(y = ydice1), col = color[1]) +
+  geom_line(aes(y = ydice2), col = color[2]) +
+  geom_line(aes(y = ydice3), col = color[3]) +
+  geom_line(aes(y = ydice4), col = color[4]) +
+  geom_line(aes(y = ydice5), col = color[5]) +
+  geom_line(aes(y = mean.dice), col = "red", size = 1.5) +
+  geom_line(aes(y = sd.dice), col = "blue", size = 1.5) +
+  scale_y_continuous(limits=c(0, 7)) +
+  labs(title = "Example of stationary time series\n(uniform distribution)", x = "t", y = "result") +
+  JT.theme
+@
+
+\begin{marginfigure}[-2cm]
+\includegraphics[width=1\textwidth]{PTS-stationarydice3}
+\caption{Stationary time series: $Y_{t}$ with mean and standard deviation}
+\label{fig:stationarydice3}
+\setfloatalignment{b}
+\end{marginfigure}
+
+The mean and the standard deviation are not constant, but that is to be expected with only 5 values for $Y_{t}$ at every time point $t$.
+
+Another example: we construct a stationary time series by taking the random draw from a normal distribution. \textbf{\textsf{R}}'s (pseudo) random number generator takes care of the independency, and we use the same normal distribution. Again, the mean and standard deviation calculated at each time point $t$ is not constant, but with 5 values in each sample, this is to be expected.
+
+<<label=stationarynorm, fig=TRUE, include=FALSE, echo=FALSE>>=
+ggplot(data = stationary, aes(x = t)) +
+  geom_line(aes(y = ynorm1), col = color[1]) +
+  geom_line(aes(y = ynorm2), col = color[2]) +
+  geom_line(aes(y = ynorm3), col = color[3]) +
+  geom_line(aes(y = ynorm4), col = color[4]) +
+  geom_line(aes(y = ynorm5), col = color[5]) +
+  geom_line(aes(y = mean.norm), col = "red", size = 1.5) +
+  geom_line(aes(y = sd.norm), col = "blue", size = 1.5) +
+  scale_y_continuous(limits=c(0, 7)) +
+  labs(title = "Example of stationary time series\n(normal distribution)", x = "t", y = "result") +
   JT.theme
 @
 
 \begin{marginfigure}
-\includegraphics[width=1\textwidth]{PTS-stationary}
-\caption{Two stationary time series: dice and normal}
-\label{fig:stationary}
+\includegraphics[width=1\textwidth]{PTS-stationarynorm}
+\caption{Stationary time series: $Y_{t}$ with mean and standard deviation}
+\label{fig:stationarynorm}
 \setfloatalignment{b}
 \end{marginfigure}
 
+
 \section{Is my time series stationary?}
-We constructed a stationary time series using the \emph{IID-principle}: \emph{Independent} samples taken from an \emph{Identical} \emph{Distribution}. 
+In \ref{sec:ideal} we constructed two stationary time series using the \emph{IID-principle}: \emph{Independent} samples taken from an \emph{Identical} \emph{Distribution}. 
 
 When we are given a time series, a first sign of possible \emph{stationarity} would be that the elements of our time series are independent of one another. Or conversely: if we were to detect that the elements of our time series are not independent, it would make it very unlikely that this time series would be \emph{stationary}. 
 
@@ -337,7 +403,7 @@ Most often we do not have access to all possible values of $A$ and $B$, but we o
 
 and calculate the \emph{sample covariance}\index{sample covariance}\index{covariance!of sample}:
 \begin{equation}
-	Cov(a,b)= \frac{1}{n-1}\sum_{i=1}^{i=n-1}(a_{i}-\bar{a})(b_{i}-\bar{b})
+	Cov(a,b)= \frac{1}{n-1}\sum_{i=1}^{i=n}(a_{i}-\bar{a})(b_{i}-\bar{b})
 \end{equation}
 
 From this definition we can see that if we calculate the sample covariance of n pairs $(a_{i}, b_{i})$ and of n pairs $(c_{i}, d_{i})$, the result will be larger, in absolute value, for the pairs which have a components with a lot of variance. Therefore it is better to use a dimensionless measure by normalising, the \emph{sample correlation}
@@ -350,22 +416,22 @@ where
 	sd(a)=\sqrt{var(a)} \quad and \quad sd(b)=\sqrt{var(b)}
 \end{equation}
 
-$Cor(a,b)$ is dimensionless and its value of  will lie between -1 and 1. High absolute values of $Cor(a,b)$ indicate a strong correlation, values around 0 indicate no correlation at all.
+$Cor(a,b)$ is dimensionless and its value will lie between -1 and 1. High absolute values of $Cor(a,b)$ indicate a strong correlation, values around 0 indicate no correlation at all.
 
 \subsection{Using covariance and correlation in time series}
 
-In time series we usually have only one set of $n$ values $y_{t}$ for each time point $t$. Suppose the values of this times series were given by a \emph{global} formula
+In time series we usually have only one set of $n$ values $y_{t}$, one for each time point $t$. Suppose the values of this times series were given by a \emph{global} formula
 \begin{equation}
 	y_{t} = 5 + 0.2t
 \end{equation}
 
-For time point $t=1 \ldots 5$ the corresponding values of $y$ would be $(5.2, 5.4, 5.6, 5.8, 6.0)$. We could reconstruct the time series in another way by saying that:
+For time points $t=1 \ldots 5$ the corresponding values of $y$ would be $(5.2, 5.4, 5.6, 5.8, 6.0)$. Another way to construct the time series would be:
 \begin{equation}
 	y_{t}=y_{t-1} + 0.2 \quad with \quad y_{1}=5.2
 \end{equation}
-This is a \emph{local} definition that tells us how one point is related to the previous point. The time series is correlated with itself. There is \emph{autocorrelation}.
+This is a \emph{local} definition that tells us that the value $y_{t}$ at time point $t$ is related to value at the previous time point. The time series is correlated with itself. There is \emph{autocorrelation}.
 
-If we want to calculate \emph{covariance} and \emph{correlation} we need pairs $(a_{i}, b_{i})$. Comparing each point with it's previous point we get $(n-1)=4$ pairs $(y_{2},y_{1}), (y_{3},y{2}), (y_{4},y{3}), (y_{5},y_{4})$. This we call \emph{auto-correlation Lag1}. But we can also compare each point with the data point two time points before. We get $(n-2)=3$ pairs $(y_{3},y_{1}), (y_{4},y{2}), (y_{5},y{3})$ (\emph{autocorrelation Lag2}). The \emph{sample autocovariance function Lagk} is defined by\sidenote{for all lags we still devide by the total length $n$ of the time series, and not by the number of pairs $(n-k)$ that are used for comparison. We also use everywhere $\bar{y}$, the average of the complete time series, and not the average of the partial time series. If the time series is long ($n$ large), this does not influence the result greatly. For small values of $n$ the effect can be substantial.}:
+If we want to calculate \emph{covariance} and \emph{correlation} we need pairs $(a_{i}, b_{i})$. Comparing each point with it's previous point we get $(n-1)=4$ pairs: $(y_{2},y_{1}), (y_{3},y_{2}), (y_{4},y_{3}), (y_{5},y_{4})$. This we call \emph{auto-correlation Lag1}. But we can also compare each point with the data point two time points before. We get $(n-2)=3$ pairs: $(y_{3},y_{1}), (y_{4},y_{2}), (y_{5},y_{3})$ (\emph{autocorrelation Lag2}). The \emph{sample autocovariance function Lagk} is defined by\sidenote{for all lags we still devide by the total length $n$ of the time series, and not by the number of pairs $(n-k)$ that are used for comparison. We also use everywhere $\bar{y}$, the average of the complete time series, and not the average of the partial time series. If the time series is long ($n$ large), this does not influence the result greatly. For small values of $n$ the effect can be substantial.}:
 \begin{equation}
 	c_{k}=\frac{1}{n}\sum_{i=1}^{i=n-k}(y_{i+k} - \bar{y})(y_{i} - \bar{y})
 	\label{eq:autocovariance}
@@ -376,11 +442,11 @@ and the \emph{sample autocorrelation function Lagk} is defined by:
 	r_{k}=\frac{c_{k}}{c_{0}}
 \end{equation}
 
-From this definition it is clear that $r_{0}=1$, which is what we expected: every time series is perfectly correlated with itself at Lag0. The \textbf{\textsf{R}} gives us a graph of the autocorrelation in a time series for lags=0 to 10. For our example where $y_{t}=5+0.2t$ ($n=1000$) we see in Figure~\ref{fig:autocorlin} perfect autocorrelation for all lags:
+From this definition it is clear that $r_{0}=1$, which is what we expected: every time series is perfectly correlated with itself at Lag0. The \textbf{\textsf{R}}-function \textit{acf} gives us a graph of the autocorrelation in a time series for different lags. For our example where $y_{t}=5+0.2t$ ($n=1000$) we see in Figure~\ref{fig:autocorlin} perfect autocorrelation for all lags:
 
 <<label=autocorlin, fig=TRUE, include=FALSE, echo=FALSE>>=
 n <- 1000
-autocorlin <- data.frame(t = seq(1,n), ylin = 0)
+autocorlin <- data.frame(t = seq(1,n), y = 0)
 autocorlin$y <- 5 + 0.2*autocorlin$t
 acf(autocorlin$y, lag.max=10)
 @
@@ -396,11 +462,11 @@ If however we construct the time series based on IID-prinicples (e.g. $y$ is cho
 
 <<label=autocornorm, fig=TRUE, include=FALSE, echo=FALSE>>=
 n <- 1000
-autocornorm <- data.frame(t = seq(1,n), ynorm = rnorm(n, 0, 1))
+autocornorm <- data.frame(t = seq(1,n), y = rnorm(n, 0, 1))
 acf(autocornorm$y, lag.max=10)
 @
 
-\begin{marginfigure}
+\begin{marginfigure}[5cm]
 \includegraphics[width=1\textwidth]{PTS-autocornorm}
 \caption{Autocorrelation: IID-constructed}
 \label{fig:autocornorm}
@@ -409,95 +475,17 @@ acf(autocornorm$y, lag.max=10)
 
 There are different tests to check if a time series is stationary: the \emph{Ljung-Box}-test, the \emph{Augmented Dickey–Fuller (ADF)}-test, the \emph{Kwiatkowski-Phillips-Schmidt-Shin (KPSS)}-test.
 
-<<>>=
-# Ljung-Box test: stationary for p > 0.05
-Box.test(stationary$ydice, type="Ljung-Box")
-Box.test(stationary$ynorm, type="Ljung-Box")
-# Augmented Dickey-Fuller: stationary for p < 0.05
-adf.test(stationary$ydice)
-adf.test(stationary$ynorm)
-# Kwiatkowski-Phillips-Schmidt-Shin test: stationary for p > 0.05
-kpss.test(stationary$ydice, null="Trend")
-kpss.test(stationary$ynorm, null="Trend")
-@
-
 Because in Figure~\ref{fig:stationary} the red lines switch between integer values, we can conclude that they come from the dice experiment. But both graphs have a very irregular look. And it might come as a surprise that we consider these \emph{stationary} time series excellent material for forecasting! On the contrary: it seems that their behaviour is our worst nightmare when we intend to predict what will happen after time index 100.
 
 However, the situation is really not that bad! Often it is OK to assume that these stationary time series come from an normal distribution. As estimate for the mean we take the sample mean, as estimate for the variance, the sample variance. Using these two we can calculate the $\alpha$ confidence interval. For $\alpha=95\%$ we get Figure~\ref{fig:stationaryCI}-left.
-
-<<label=stationaryCI, fig=TRUE, include=FALSE, echo=FALSE>>=
-mu.dice <- mean(stationary$ydice)
-sd.dice <- sd(stationary$ydice)
-low.lim.dice <- mu.dice - 1.96*sd.dice
-high.lim.dice <- mu.dice + 1.96*sd.dice
-mu.norm <- mean(stationary$ynorm)
-sd.norm <- sd(stationary$ynorm)
-low.lim.norm <- mu.norm - 1.96*sd.norm
-high.lim.norm <- mu.norm + 1.96*sd.norm
-N.ext <- 25
-stationary.ext <- data.frame(t = seq((N + 1),(N + N.ext)), ydice = mu.dice, lwr.ydice = low.lim.dice, upr.ydice = high.lim.dice, ynorm = mu.norm, lwr.ynorm = low.lim.norm, upr.ynorm = high.lim.norm)
-p1 <- ggplot() +
-  geom_line(data = stationary, aes(x = t, y = ydice), col = "red") +
-  geom_line(data = stationary, aes(x = t, y = ynorm), col = "blue") +
-  geom_line(data = stationary.ext, aes(x = t, y = ydice), color = "red", linetype = 2) +
-  geom_line(data = stationary.ext, aes(x = t, y = ynorm), color = "blue", linetype = 2) +
-  labs(title = "Prediction of stationary time series\n(assumption: normal distribution)", x = "t", y = "result") +
-  geom_ribbon(data = stationary.ext, aes(x = t, ymin = lwr.ydice, ymax = upr.ydice), fill = "red", alpha = 0.3) +
-  geom_ribbon(data = stationary.ext, aes(x = t, ymin = lwr.ynorm, ymax = upr.ynorm), fill = "blue", alpha = 0.3) +
-  scale_y_continuous(limits=c(-1, 8)) +
-  JT.theme
-@
 
 As we can see, the new values ($t>100$) fall (almost) within the predicted confidence intervals (red for the dice experiment, blue for the normal sampling experiment). And while it is true that this does not give us accurate predictions on an experiment-by-experiment basis, it gives a general idea of what we can expect. 
 
 We could of course also fit a linear model to these time series:
 
-<<>>=
-mod.dice <- lm(ydice ~ t, data = stationary)
-tidy(mod.dice)
-mod.norm <- lm(ynorm ~ t, data = stationary)
-tidy(mod.norm)
-@
+We can see that the p-values for the slope  are well above 0.05, so that there is no reason to reject the null-hypothesis that the slope = 0. This means that in both cases the predicted value in the future will be equal to the intercept value of the models  and . We can calculate a 95\% confidence interval for this model (Figure~\ref{fig:stationaryCI}-right).
 
-We can see that the p-values for the slope (\Sexpr{round(tidy(mod.dice)$p.value[2], 3)} and \Sexpr{round(tidy(mod.norm)$p.value[2], 3)}) are well above 0.05, so that there is no reason to reject the null-hypothesis that the slope = 0. This means that in both cases the predicted value in the future will be equal to the intercept value of the models (\Sexpr{round(tidy(mod.dice)$estimate[1], 3)} and \Sexpr{round(tidy(mod.norm)$estimate[1], 3)}). We can calculate a 95\% confidence interval for this model (Figure~\ref{fig:stationaryCI}-right).
 
-<<label=stationaryCI, fig=TRUE, include=FALSE, echo=FALSE>>=
-intercept.dice <- tidy(mod.dice)$estimate[1]
-intercept.norm <- tidy(mod.norm)$estimate[1]
-alpha <- 0.05
-t0 <- qt((1 - alpha/2), N - 2)
-stationary.pred <- data.frame(t = seq((N + 1),(N + N.ext)), 
-                              ydice = intercept.dice,
-                              lwr.dice = 0,
-                              upr.dice = 0,
-                              ynorm = intercept.norm,
-                              lwr.norm = 0,
-                              upr.norm = 0)
-tbar <- mean(stationary$t)
-SStt <- (N-1)*var(stationary$t)
-stationary.pred$lwr.dice <- intercept.dice - t0*sqrt(var(stationary$ydice)*(1 + (1/N) + ((stationary.pred$t - tbar)^2)/SStt))
-stationary.pred$upr.dice <- intercept.dice + t0*sqrt(var(stationary$ydice)*(1 + (1/N) + ((stationary.pred$t - tbar)^2)/SStt))
-stationary.pred$lwr.norm <- intercept.norm - t0*sqrt(var(stationary$ynorm)*(1 + (1/N) + ((stationary.pred$t - tbar)^2)/SStt))
-stationary.pred$upr.norm <- intercept.dice + t0*sqrt(var(stationary$ynorm)*(1 + (1/N) + ((stationary.pred$t - tbar)^2)/SStt))
-p2 <- ggplot() +
-  geom_line(data = stationary, aes(x = t, y = ydice), col = "red") +
-  geom_line(data = stationary.pred, aes(x = t, y = ydice), col = "red", linetype = 2) +
-  geom_ribbon(data = stationary.pred, aes(x = t, ymin = lwr.dice, ymax = upr.dice), fill = "red", alpha = 0.3) +
-  geom_line(data = stationary, aes(x = t, y = ynorm), col = "blue") +
-  geom_line(data = stationary.pred, aes(x = t, y = ynorm), col = "blue", linetype = 2) +
-  geom_ribbon(data = stationary.pred, aes(x = t, ymin = lwr.norm, ymax = upr.norm), fill = "blue", alpha = 0.3) +
-  labs(title = "Prediction of stationary time series\n(linear model with slope = 0)", x = "t", y = "result") +
-  scale_y_continuous(limits=c(-1, 8)) +
-  JT.theme
-grid.arrange(p1, p2, nrow=1)
-@
-
-\begin{figure}
-\includegraphics[width=1\textwidth]{PTS-stationaryCI}
-\caption{Confidence intervals of forecasted values}
-\label{fig:stationaryCI}
-\setfloatalignment{b}
-\end{figure}
 
 \section{Dependency}
 
