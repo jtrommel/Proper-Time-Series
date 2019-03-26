@@ -355,7 +355,7 @@ ggplot(data = stationary, aes(x = t)) +
 
 The mean and the standard deviation are almost exactly constant and equal to the expected value (3.5 for the mean and 1.44 for the standard deviation)\sidenote{This is of course what we expect based on the theory of sampling distributions}. This time series is \emph{second order stationary}.
 
-Another example: we construct a stationary time series by taking, at each point in time $t$, a random draw from a normal distribution (in this example N($\mu=3.5$, $\sigma=1$). Again, the mean and standard deviation of the 100 simulated time series calculated at each time point $t$, is not exactly constant, but very close to the mean (3.5) and the standard deviation (1) of the normal distribution that we used. Again a time series that is \emph{second order stationary}.
+Another example: we construct a stationary time series by taking, at each point in time $t$, a random draw from a normal distribution (in this example N($\mu=3.5$, $\sigma=1$). Again, the mean and standard deviation of the 100 simulated time series calculated at each time point $t$, are not exactly constant, but very close to the mean (3.5) and the standard deviation (1) of the normal distribution that we used. This time series is \emph{second order stationary}.
 
 <<label=stationarynorm, fig=TRUE, include=FALSE, echo=FALSE>>=
 ggplot(data = stationary, aes(x = t)) +
@@ -378,14 +378,20 @@ ggplot(data = stationary, aes(x = t)) +
 \setfloatalignment{b}
 \end{marginfigure}
 
+Figure~\ref{fig:stationarydice1} and Figure~\ref{fig:stationarynorm} (which is Gaussian noise\index{noise}\index{Gaussian noise}\index{noise!Gaussian} have a very irregular look and it might come as a surprise that we consider these \emph{stationary} time series excellent material for forecasting! From a statistical point of view however it simply indicates that when we accept that chance influences the values $y_{t}$ of our time series, we also have to accept that we can only provide a confidence interval for the future values $y_{n+1}, y_{n+2}$. If we have reason to believe that $Y_{t}$ is normally distributed we can define a $\alpha$ confidence interval for the first forecasted value $y_{n+1}$\sidenote{We assume here that the variance will remain constant. For a one-step forecast this may be acceptable, but for longer forecasts we will have to increase the variance}: 
+\begin{equation}
+	\bar{y} - ks'_{y} \leq y_{n+1} \leq \bar{y} - ks'_{y} \quad with \quad k=tinv \left( 1-\frac{\alpha}{2} \right)
+\end{equation}
 
-\section{Is my time series stationary?}
+For a 95\% confidence interval $k \sim 2$.
+
+If $Y_{t}$ is not normally distributed, than we can fall back on Chebyshev's inequality to obtain a confidence interval. For a 95\%-interval $k \sim 4.5$.
+
+\section{Is a given time series stationary?}
 
 In \ref{sec:ideal} we constructed two stationary time series using the \emph{IID-principle}\index{IID-principle}: \emph{Independent}\index{independence} samples taken from an \emph{Identical} \emph{Distribution}. 
 
-In reality we have to work with time series that are presented to us. A first sign of possible \emph{stationarity} would be that the elements of this time series are \emph{independent} of one another. Conversely: if we were to detect that the elements of this time series are \emph{not independent}, it would make it unlikely that this given time series would be \emph{stationary}. 
-
-\emph{Independence} can be checked using the concepts of \emph{covariance} and \emph{correlation}. 
+In reality we have to work with time series that are presented to us. A first sign of possible \emph{stationarity} would be that the elements of this time series are \emph{independent} of one another. Conversely: if we detect that the elements of this time series are \emph{not independent}, it would make it unlikely that this given time series would be \emph{stationary}. \emph{Independence} can be checked using the concepts of \emph{covariance} and \emph{correlation}. 
 
 \subsection{Covariance and Correlation}\index{covariance}\index{correlation}
 In general, when we have two random variables $A$ and $B$ the \emph{covariance} of these two is given by:
@@ -415,20 +421,36 @@ where
 
 $Cor(a,b)$ is dimensionless and its value will lie between -1 and 1. High absolute values of $Cor(a,b)$ indicate a strong correlation, values around 0 indicate no correlation at all.
 
-\subsection{Using covariance and correlation in time series}
+\subsection{Using covariance and correlation in time series: autocorrelation}
+\label{subsec:autocor}
 
 In time series we usually have only one set of $n$ values $y_{t}$, one for each time point $t$. Suppose the values of this times series were given by a \emph{global} formula
 \begin{equation}
 	y_{t} = 5 + 0.2t
 \end{equation}
 
-For time points $t=1 \ldots 5$ the corresponding values of $y$ would be $(5.2, 5.4, 5.6, 5.8, 6.0)$. Another way to construct this time series would be:
+For time points $t=1 \ldots 5$ the corresponding values of $y$ would be
+\begin{equation}
+	5.2, \quad 5.4, \quad 5.6, \quad 5.8, \quad 6.0
+\end{equation}
+
+Another way to construct this time series would be:
 \begin{equation}
 	y_{t}=y_{t-1} + 0.2 \quad with \quad y_{1}=5.2
 \end{equation}
-This is a \emph{local} definition that tells us that the value $y_{t}$ at time point $t$ is \emph{related} to value at the previous time point. The time series is \textbf{co}-related \emph{with itself}. This type of correlation is called \emph{autocorrelation}\index{autocorrelation}.
+This is a \emph{local} definition\sidenote{linear recursion equation. See "Linear Recurrence Relations with Constant Coefficients", P. Levrie, University of Antwerp}\index{linear recursion equation} that tells us that the value $y_{t}$ at time point $t$ is \emph{related} to value at the previous time point. The time series is thus \textbf{co}-related \emph{with itself}. This type of correlation is called \emph{autocorrelation}\index{autocorrelation}.
 
-If we want to calculate \emph{covariance} and \emph{correlation} we need pairs $(a_{i}, b_{i})$. Comparing each point with it's previous point we get $(n-1)=4$ pairs: $(y_{2},y_{1}), (y_{3},y_{2}), (y_{4},y_{3}), (y_{5},y_{4})$. This we call \emph{auto-correlation Lag1}. But we can also compare each point with the data point two time points before. We get $(n-2)=3$ pairs: $(y_{3},y_{1}), (y_{4},y_{2}), (y_{5},y_{3})$ (\emph{autocorrelation Lag2}). The \emph{sample autocovariance function Lagk} is defined by\sidenote[][-5cm]{for all lags we still devide by the total length $n$ of the time series, and not by the number of pairs $(n-k)$ that are used for comparison. We also use everywhere $\bar{y}$, the average of the complete time series, and not the average of the partial time series. If the time series is long ($n$ large), this does not influence the result greatly. For small values of $n$ the effect can be substantial.}:
+If we want to calculate \emph{covariance} and \emph{correlation} we need pairs $(a_{i}, b_{i})$. Comparing each point with its previous point we get $(n-1)=4$ pairs: 
+\begin{equation}
+	(y_{2},y_{1}), \quad (y_{3},y_{2}), \quad (y_{4},y_{3}), \quad (y_{5},y_{4})
+\end{equation}
+
+This we call \emph{autocorrelation Lag1}. We can also compare each point with the data point two time points before. We get $(n-2)=3$ pairs (\emph{autocorrelation Lag2}): 
+\begin{equation}
+	(y_{3},y_{1}), \quad (y_{4},y_{2}), \quad (y_{5},y_{3})
+\end{equation}
+
+The \emph{sample autocovariance function Lagk} is defined by\sidenote[][-1cm]{for all lags we still devide by the total length $n$ of the time series, and not by the number of pairs $(n-k)$ that are used for comparison. We also use everywhere $\bar{y}$, the average of the complete time series, and not the average of the partial time series. If the time series is long ($n$ large), this does not influence the result greatly. For small values of $n$ the effect can be substantial.}:
 \begin{equation}
 	c_{k}=\frac{1}{n}\sum_{i=1}^{i=n-k}(y_{i+k} - \bar{y})(y_{i} - \bar{y})
 	\label{eq:autocovariance}
@@ -439,52 +461,251 @@ and the \emph{sample autocorrelation function Lagk} is defined by:
 	r_{k}=\frac{c_{k}}{c_{0}}
 \end{equation}
 
-From this definition it is clear that $r_{0}=1$, which is what we expected: every time series is perfectly correlated with itself at Lag0. The \textbf{\textsf{R}}-function \textit{acf} gives us a graph of the autocorrelation in a time series for different lags. For our example where $y_{t}=5+0.2t$ ($n=1000$) we see in Figure~\ref{fig:autocorlin} perfect autocorrelation for all lags:
+From this definition it is clear that $r_{0}=1$, which is what we expected: every time series is perfectly correlated with itself at Lag0. The \textbf{\textsf{R}}-function \textit{acf} gives us a graph of the autocorrelation within a time series for different lags. For our example where $y_{t}=5+0.2t$ ($n=1000$) we see in Figure~\ref{fig:autocorlin} perfect autocorrelation for all lags.
 
 <<label=autocorlin, fig=TRUE, include=FALSE, echo=FALSE>>=
 n <- 1000
 autocorlin <- data.frame(t = seq(1,n), y = 0)
 autocorlin$y <- 5 + 0.2*autocorlin$t
-acf(autocorlin$y, lag.max=10)
+autolin <- data.frame(lag = acf(autocorlin$y, lag.max=10, plot = FALSE)$lag, 
+                   acf = acf(autocorlin$y, lag.max=10, plot = FALSE)$acf)
+ggplot(data = autolin, aes(x = lag, y = acf)) +
+        geom_segment(aes(xend = lag, yend = 0), size = 3) +
+        scale_x_continuous(limits=c(0, 10), breaks = seq(0,10,1)) +
+        scale_y_continuous(limits=c(0, 1), breaks = seq(0,1,0.1)) +
+        labs(title = "Autocorrelation (linear dependency)", x = "t", y = "result") +
+        JT.theme
 @
 
-\begin{marginfigure}[-4.5cm]
+\begin{marginfigure}[-2cm]
 \includegraphics[width=1\textwidth]{PTS-autocorlin}
 \caption{Autocorrelation: linear dependency}
 \label{fig:autocorlin}
 \setfloatalignment{b}
 \end{marginfigure}
 
-If however we construct the time series based on IID-prinicples (e.g. $y$ is chosen at random from a standard normal distribution) we see no autocorrelation at all (Figure~\ref{fig:autocornorm}).
+If however we construct a time series based on IID-prinicples (e.g. where $y$ is chosen at random from a standard normal distribution) we see no autocorrelation at all (Figure~\ref{fig:autocornorm}), except for k=0.
 
 <<label=autocornorm, fig=TRUE, include=FALSE, echo=FALSE>>=
 n <- 1000
 autocornorm <- data.frame(t = seq(1,n), y = rnorm(n, 0, 1))
-acf(autocornorm$y, lag.max=10)
+auto <- data.frame(lag = acf(autocornorm$y, lag.max=10, plot = FALSE)$lag, 
+                   acf = acf(autocornorm$y, lag.max=10, plot = FALSE)$acf)
+ggplot(data = auto, aes(x = lag, y = acf)) +
+        geom_segment(aes(xend = lag, yend = 0), size = 3) +
+        scale_x_continuous(limits=c(0, 10), breaks = seq(0,10,1)) +
+        scale_y_continuous(limits=c(0, 1), breaks = seq(0,1,0.1)) +
+        labs(title = "Autocorrelation (IID-constructed)", x = "t", y = "result") +
+        JT.theme
 @
 
-\begin{marginfigure}[0cm]
+\begin{marginfigure}[0.5cm]
 \includegraphics[width=1\textwidth]{PTS-autocornorm}
 \caption{Autocorrelation: IID-constructed}
 \label{fig:autocornorm}
 \setfloatalignment{b}
 \end{marginfigure}
 
+\subsection{Partial autocorrelation in time series}
+If 
+\begin{equation}
+	y_{t} = y_{t-1} + b_{1} \quad or \quad y_{t-1}=y_{t}-b_{1}
+\end{equation}
+
+then we can say that \emph{the effect of the autocorrelation at lag1}\index{partial autocorrelation}\index{autocorrelation!partial} is that it deducts $b_{1}$ from the time series at lag0. When we apply this effect on the time series at lag1 is that we get a new time series ($t=3 \ldots n$)
+\begin{equation}
+	z_{t-2} = y_{t-1} - b_{1} = y_{t-2}
+\end{equation}
+
+which is equal to the time series at lag2. If we \emph{remove} this effect from the time series at lag2 we get:
+\begin{equation}
+	y_{t-2} - z_{t-2} = 0
+\end{equation}
+
+We define the \emph{partial autocorrelation at lag2} as the correlation that results \emph{after removing the effect} of the correlation at lag1. In this case it would be the correlation between $y_{t}$ and $y_{t-2}-z_{t-2}=0$ (for $t=1 \ldots n$), which would be equal to $0$.
+
+A more general definition of the \emph{partial autocorrelation at lagk} as the correlation that results after removing the effect of any correlations due to the terms at shorter lags will give partial correlation = $0$ for all lagk's (Figure~\ref{fig:pautocorlin}).
+
+<<label=pautocorlin, fig=TRUE, include=FALSE, echo=FALSE>>=
+part <- data.frame(lag = pacf(autocorlin$y, lag.max=10, plot = FALSE)$lag, 
+                   acf = pacf(autocorlin$y, lag.max=10, plot = FALSE)$acf)
+ggplot(data = part, aes(x = lag, y = acf)) +
+        geom_segment(aes(xend = lag, yend = 0), size = 3) +
+        scale_x_continuous(limits=c(0, 10), breaks = seq(0,10,1)) +
+        scale_y_continuous(limits=c(0, 1), breaks = seq(0,1,0.1)) +
+        labs(title = "Partial autocorrelation (linear dependency)", x = "t", y = "result") +
+        JT.theme
+@
+
+\begin{marginfigure}[0cm]
+\includegraphics[width=1\textwidth]{PTS-pautocorlin}
+\caption{Partial autocorrelation: linear dependency}
+\label{fig:pautocorlin}
+\setfloatalignment{b}
+\end{marginfigure}
+
 There are different tests to check if a time series is stationary: the \emph{Ljung-Box}-test, the \emph{Augmented Dickey–Fuller (ADF)}-test, the \emph{Kwiatkowski-Phillips-Schmidt-Shin (KPSS)}-test.
 
-Because in Figure~\ref{fig:stationary} the red lines switch between integer values, we can conclude that they come from the dice experiment. But both graphs have a very irregular look. And it might come as a surprise that we consider these \emph{stationary} time series excellent material for forecasting! On the contrary: it seems that their behaviour is our worst nightmare when we intend to predict what will happen after time index 100.
+\newpage
+\section{Dependency and Patterns}
 
-However, the situation is really not that bad! Often it is OK to assume that these stationary time series come from an normal distribution. As estimate for the mean we take the sample mean, as estimate for the variance, the sample variance. Using these two we can calculate the $\alpha$ confidence interval. For $\alpha=95\%$ we get Figure~\ref{fig:stationaryCI}-left.
+\subsection{Trend}\index{trend}
 
-As we can see, the new values ($t>100$) fall (almost) within the predicted confidence intervals (red for the dice experiment, blue for the normal sampling experiment). And while it is true that this does not give us accurate predictions on an experiment-by-experiment basis, it gives a general idea of what we can expect. 
+In \ref{subsec:autocor} we constructed a time series where each value $y_{t}$ was equal to the previous value $y_{t-1}$ plus a constant:
+\begin{equation}
+	y_{t}=0.2 + y_{t-1} \quad with \quad y_{1}=5.2
+\end{equation}
 
-We could of course also fit a linear model to these time series:
+The use of this recursion formula makes the values of $y_{t}$ \emph{dependent} of each other: there is autocorrelation. The time series is not stationary and it shows a linear pattern (Figure~\ref{fig:lintrend}).
 
-We can see that the p-values for the slope  are well above 0.05, so that there is no reason to reject the null-hypothesis that the slope = 0. This means that in both cases the predicted value in the future will be equal to the intercept value of the models  and . We can calculate a 95\% confidence interval for this model (Figure~\ref{fig:stationaryCI}-right).
+<<label=lintrend, fig=TRUE, include=FALSE, echo=FALSE>>=
+n <- 20
+lintrend <- data.frame(t = seq(1, n, 1), 
+                       y = 0)
+lintrend$y <- 5 + 0.2*lintrend$t
+ggplot(data = lintrend, aes(x = t, y = y)) +
+        geom_point(size = 2) +
+        scale_x_continuous(limits=c(0, n), breaks = seq(0,n,1)) +
+        scale_y_continuous(limits=c(0, 10), breaks = seq(0,10,1)) +
+        labs(title = "Linear pattern", x = "t", y = "result") +
+        JT.theme
+@
 
+\begin{marginfigure}[0cm]
+\includegraphics[width=1\textwidth]{PTS-lintrend}
+\caption{Linear pattern}
+\label{fig:lintrend}
+\setfloatalignment{b}
+\end{marginfigure}
 
+Adding some white noise to the data we get Figure~\ref{fig:lintrendnoise}. We can still see a pattern in the time series created by the recursion formula. In this case the presence of \emph{autocorrelation} creates a linear pattern.
 
-\section{Dependency}
+<<label=lintrendnoise, fig=TRUE, include=FALSE, echo=FALSE>>=
+lintrend$ynoise <- lintrend$y + rnorm(n, 0, 1)
+ggplot(data = lintrend, aes(x = t, y = ynoise)) +
+        geom_point(size = 2) +
+        scale_x_continuous(limits=c(0, n), breaks = seq(0,n,1)) +
+        scale_y_continuous(limits=c(0, 10), breaks = seq(0,10,1)) +
+        labs(title = "Linear pattern\ndata with white noise", x = "t", y = "result") +
+        JT.theme
+@
+
+\begin{marginfigure}[0cm]
+\includegraphics[width=1\textwidth]{PTS-lintrendnoise}
+\caption{Linear pattern with noise}
+\label{fig:lintrendnoise}
+\setfloatalignment{b}
+\end{marginfigure}
+
+A slight change in the recursion formula (the co\"{e}ffici\"{e}nt of $y_{t-1}$) gives us other patterns: equation~\ref{eq:exp} gives us the non-linear pattern in Figure~\ref{fig:nonlintrendnoise}-left, while equation~\ref{eq:asympt} gives us the non-linear pattern in Figure~\ref{fig:nonlintrendnoise}-right.
+\begin{equation}
+	y_{t} = 0.2 + 1.2y_{t-1}
+\label{eq:exp}
+\end{equation}
+
+\begin{equation}
+	y_{t} = 0.2 + 0.8y_{t-1}
+\label{eq:asympt}
+\end{equation}
+<<label=nonlintrendnoise, fig=TRUE, include=FALSE, echo=FALSE>>=
+n <- 20
+pattern <- data.frame(t = seq(1, n, 1),
+                      y1 = 0,
+                      y2 = 0)
+pattern$y1 <- -1 + 6*(1.2^pattern$t) + rnorm(n, 0, 4)
+pattern$y2 <- 1 + 4*(0.8^pattern$t) + rnorm(n, 0, 0.3)
+p1 <- ggplot(data = pattern) +
+        geom_point( aes(x = t, y = y1), size = 2, col = "red") +
+        scale_x_continuous(limits=c(0, n), breaks = seq(0, n, 2)) +
+        scale_y_continuous(limits=c(0, 150), breaks = seq(0, 150, 10)) +
+        labs(title = "Non-linear pattern\ndata with white noise", x = "t", y = "result") +
+        JT.theme
+p2 <- ggplot(data = pattern) +
+        geom_point( aes(x = t, y = y2), size = 2, col = "blue") +
+        scale_x_continuous(limits=c(0, n), breaks = seq(0, n, 2)) +
+        scale_y_continuous(limits=c(0, 5), breaks = seq(0, 5, 1)) +
+        labs(title = "Non-linear pattern\ndata with white noise", x = "t", y = "result") +
+        JT.theme
+grid.arrange(p1, p2, nrow = 1)
+@
+
+\begin{figure}
+\includegraphics[width=0.8\textwidth]{PTS-nonlintrendnoise}
+\caption{Non-linear patterns with noise}
+\label{fig:nonlintrendnoise}
+\setfloatalignment{b}
+\end{figure}
+
+\subsection{Finding the trend with linear regression methods}
+
+The general behaviour of $y_{t}$ as a function of $t$ can be described by a function $y=f(t)$ which we call the \emph{general} trend\index{trend}. Linear regression\sidenote{The ''linear" in linear regression refers to the co\"{e}ffici\"{e}nts. The variabel $t$ can appear in a polynomial, in an exponential function ...} can be used to find $f(t)$. 
+
+For example we can fit a quadratic curve (Figure~\ref{fig:polytrend})-left through the datapoints in Figure~\ref{fig:nonlintrendnoise}-left. Not bad, but not great. Maybe it would be better to use an exponential function (Figure~\ref{fig:polytrend}-right):
+
+<<label=polytrend, fig=TRUE, include=FALSE, echo=FALSE>>=
+coef <- tidy(lm(y1 ~ t + I(t^2), data = pattern))$estimate
+pattern$fity <- coef[1] +
+              coef[2]*pattern$t +
+              coef[3]*(pattern$t)^2
+p1 <- ggplot(data = pattern) +
+        geom_point(aes(x = t, y = y1), size = 2, col = "red") +
+        geom_line(aes(x = t, y = fity)) +
+        scale_x_continuous(limits=c(0, n), breaks = seq(0, n, 2)) +
+        scale_y_continuous(limits=c(0, 150), breaks = seq(0, 150, 10)) +
+        labs(title = "Non-linear pattern\nfitted trend - polynomial", x = "t", y = "result") +
+        JT.theme
+pattern$lny1 <- log(pattern$y1)
+coef <- tidy(lm(lny1 ~ t, data = pattern))$estimate
+pattern$fityln <- exp(coef[1])*exp(coef[2]*pattern$t)
+p2 <- ggplot(data = pattern) +
+        geom_point(aes(x = t, y = y1), size = 2, col = "red") +
+        geom_line(aes(x = t, y = fityln)) +
+        scale_x_continuous(limits=c(0, n), breaks = seq(0, n, 2)) +
+        scale_y_continuous(limits=c(0, 150), breaks = seq(0, 150, 10)) +
+        labs(title = "Non-linear pattern\nfitted trend - exponential", x = "t", y = "result") +
+        JT.theme
+grid.arrange(p1, p2, nrow=1)
+@
+
+\begin{marginfigure}
+\includegraphics[width=1\textwidth]{PTS-polytrend}
+\caption{Polynomial trendline}
+\label{fig:polytrend}
+\setfloatalignment{b}
+\end{marginfigure}
+
+Other functions are possible. We can also try a recursive formula. To see which lag we should use we first calculate the partial autocorrelation (Figure~\ref{fig:pacftrend}). There is a clear correlation with lag1. Then we look for a linear regression between the time series and its lag1. To reconstruct the time series based on the recursive equation we need to specify the starting value $y_{1}$.
+
+<<label=pacftrend, fig=TRUE, include=FALSE, echo=FALSE>>=
+part <- data.frame(lag = pacf(pattern$y1, lag.max=10, plot = FALSE)$lag, 
+                   acf = pacf(pattern$y1, lag.max=10, plot = FALSE)$acf)
+p1 <- ggplot(data = part, aes(x = lag, y = acf)) +
+        geom_segment(aes(xend = lag, yend = 0), size = 3) +
+        scale_x_continuous(limits=c(0, 10), breaks = seq(0,10,1)) +
+        scale_y_continuous(limits=c(0, 1), breaks = seq(0,1,0.1)) +
+        labs(title = "Partial autocorrelation", x = "t", y = "result") +
+        JT.theme
+n <- 20
+coef <- tidy(lm(y1[2:n] ~ y1[1:(n-1)], data = pattern))$estimate
+pattern$yrec[1] <- 5
+for(i in seq(2, n, 1)) {pattern$yrec[i] = coef[1] + coef[2]*pattern$yrec[i-1]}
+p2 <- ggplot(data = pattern) +
+        geom_point(aes(x = t, y = y1), size = 2, col = "red") +
+        geom_line(aes(x = t, y = yrec)) +
+        scale_x_continuous(limits=c(0, n), breaks = seq(0, n, 2)) +
+        scale_y_continuous(limits=c(0, 150), breaks = seq(0, 150, 10)) +
+        labs(title = "Non-linear pattern\nfitted trend - recursive", x = "t", y = "result") +
+        JT.theme
+grid.arrange(p1, p2, nrow=1)
+@
+
+\begin{marginfigure}
+\includegraphics[width=1\textwidth]{PTS-pacftrend}
+\caption{Trend fitted by a recursive relation}
+\label{fig:pacftrend}
+\setfloatalignment{b}
+\end{marginfigure}
+
 
 \subsection{The random walk}\index{random walk}\index{dependency!random walk}
 
