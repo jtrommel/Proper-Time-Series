@@ -551,12 +551,13 @@ There are different tests to check if a time series is stationary: the \emph{Lju
 
 \subsection{Trend}\index{trend}
 
-In \ref{subsec:autocor} we constructed a time series where each value $y_{t}$ was equal to the previous value $y_{t-1}$ plus a constant:
+In \ref{subsec:autocor} we showed that when we use a global linear function in $t$ ($y_{t}=b_{0}+b_{1}t$) (Figure~\ref{fig:lintrend}), we can also construct the same time series with a recursion formula:
 \begin{equation}
 	y_{t}=0.2 + y_{t-1} \quad with \quad y_{1}=5.2
+\label{eq:linrecursion}
 \end{equation}
 
-The use of this recursion formula makes the values of $y_{t}$ \emph{dependent} of each other: there is autocorrelation. The time series is not stationary and it shows a linear pattern (Figure~\ref{fig:lintrend}).
+This recursion formula \ref{eq:linrecursion} shows that the values of $y_{t}$ are \emph{dependent} of each other: there is autocorrelation and therefore this time series is \emph{not stationary}.
 
 <<label=lintrend, fig=TRUE, include=FALSE, echo=FALSE>>=
 n <- 20
@@ -567,7 +568,7 @@ ggplot(data = lintrend, aes(x = t, y = y)) +
         geom_point(size = 2) +
         scale_x_continuous(limits=c(0, n), breaks = seq(0,n,1)) +
         scale_y_continuous(limits=c(0, 10), breaks = seq(0,10,1)) +
-        labs(title = "Linear pattern", x = "t", y = "result") +
+        labs(title = "Time series based on a linear function", x = "t", y = "result") +
         JT.theme
 @
 
@@ -578,134 +579,129 @@ ggplot(data = lintrend, aes(x = t, y = y)) +
 \setfloatalignment{b}
 \end{marginfigure}
 
-Adding some white noise to the data we get Figure~\ref{fig:lintrendnoise}. We can still see a pattern in the time series created by the recursion formula. In this case the presence of \emph{autocorrelation} creates a linear pattern.
-
-<<label=lintrendnoise, fig=TRUE, include=FALSE, echo=FALSE>>=
-lintrend$ynoise <- lintrend$y + rnorm(n, 0, 1)
-ggplot(data = lintrend, aes(x = t, y = ynoise)) +
-        geom_point(size = 2) +
-        scale_x_continuous(limits=c(0, n), breaks = seq(0,n,1)) +
-        scale_y_continuous(limits=c(0, 10), breaks = seq(0,10,1)) +
-        labs(title = "Linear pattern\ndata with white noise", x = "t", y = "result") +
-        JT.theme
-@
-
-\begin{marginfigure}[0cm]
-\includegraphics[width=1\textwidth]{PTS-lintrendnoise}
-\caption{Linear pattern with noise}
-\label{fig:lintrendnoise}
-\setfloatalignment{b}
-\end{marginfigure}
-
-A slight change in the recursion formula (the co\"{e}ffici\"{e}nt of $y_{t-1}$) gives us other patterns: equation~\ref{eq:exp} gives us the non-linear pattern in Figure~\ref{fig:nonlintrendnoise}-left, while equation~\ref{eq:asympt} gives us the non-linear pattern in Figure~\ref{fig:nonlintrendnoise}-right.
+With a small modification of the recursion formula (the co\"{e}ffici\"{e}nt of $y_{t-1}$) we can get other patterns: equation~\ref{eq:exp} gives us the same result as the non-linear function $y=-1 + 6.(1.2)^{t}$ ( Figure~\ref{fig:nonlintrend}-left). 
 \begin{equation}
 	y_{t} = 0.2 + 1.2y_{t-1}
 \label{eq:exp}
 \end{equation}
 
+Recursive fuction~\ref{eq:asympt} gives the same result as the non-linear function $y=1 + 4.(0.8)^{t}$ (Figure~\ref{fig:nonlintrend}-right).
 \begin{equation}
 	y_{t} = 0.2 + 0.8y_{t-1}
 \label{eq:asympt}
 \end{equation}
-<<label=nonlintrendnoise, fig=TRUE, include=FALSE, echo=FALSE>>=
+
+<<label=nonlintrend, fig=TRUE, include=FALSE, echo=FALSE>>=
 n <- 20
 pattern <- data.frame(t = seq(1, n, 1),
                       y1 = 0,
                       y2 = 0)
-pattern$y1 <- -1 + 6*(1.2^pattern$t) + rnorm(n, 0, 4)
-pattern$y2 <- 1 + 4*(0.8^pattern$t) + rnorm(n, 0, 0.3)
+pattern$y1 <- -1 + 6*(1.2^pattern$t)
+pattern$y2 <- 1 + 4*(0.8^pattern$t)
 p1 <- ggplot(data = pattern) +
         geom_point( aes(x = t, y = y1), size = 2, col = "red") +
         scale_x_continuous(limits=c(0, n), breaks = seq(0, n, 2)) +
         scale_y_continuous(limits=c(0, 150), breaks = seq(0, 150, 10)) +
-        labs(title = "Non-linear pattern\ndata with white noise", x = "t", y = "result") +
+        labs(title = "Non-linear pattern", x = "t", y = "result") +
         JT.theme
 p2 <- ggplot(data = pattern) +
         geom_point( aes(x = t, y = y2), size = 2, col = "blue") +
         scale_x_continuous(limits=c(0, n), breaks = seq(0, n, 2)) +
         scale_y_continuous(limits=c(0, 5), breaks = seq(0, 5, 1)) +
-        labs(title = "Non-linear pattern\ndata with white noise", x = "t", y = "result") +
+        labs(title = "Non-linear pattern", x = "t", y = "result") +
         JT.theme
 grid.arrange(p1, p2, nrow = 1)
 @
 
 \begin{figure}
-\includegraphics[width=0.8\textwidth]{PTS-nonlintrendnoise}
-\caption{Non-linear patterns with noise}
-\label{fig:nonlintrendnoise}
+\includegraphics[width=0.8\textwidth]{PTS-nonlintrend}
+\caption{Non-linear patterns}
+\label{fig:nonlintrend}
 \setfloatalignment{b}
 \end{figure}
 
-\subsection{Finding the trend with linear regression methods}
+It seems that if we see a general trend within a time series, it should be possible to find an appropriate function to describe this trend. For a real time series the measurements will probably not lie exactly on this trend function, but there are methods (e.g. \emph{ordinary least squares method}) that give us the functions parameters that minimize the difference between the actual measurement and the value that we calculate using the trend function. The most obvious method is \emph{linear regression}.
 
-The general behaviour of $y_{t}$ as a function of $t$ can be described by a function $y=f(t)$ which we call the \emph{general} trend\index{trend}. Linear regression\sidenote{The ''linear" in linear regression refers to the co\"{e}ffici\"{e}nts. The variabel $t$ can appear in a polynomial, in an exponential function ...} can be used to find $f(t)$. 
+\subsection{Finding the trend with linear regression methods\index{linear regression}}
 
-For example we can fit a quadratic curve (Figure~\ref{fig:polytrend})-left through the datapoints in Figure~\ref{fig:nonlintrendnoise}-left. Not bad, but not great. Maybe it would be better to use an exponential function (Figure~\ref{fig:polytrend}-right):
+Figure~\ref{fig:polytrend} shows a time series and we could think that a quadratic function would be a good model for the trend. We can fit a quadratic curve through the datapoints in Figure~\ref{fig:polytrend}. 
 
 <<label=polytrend, fig=TRUE, include=FALSE, echo=FALSE>>=
-coef <- tidy(lm(y1 ~ t + I(t^2), data = pattern))$estimate
+pattern$y1noise <- pattern$y1 + rnorm(n, 0, 3)
+coef <- tidy(lm(y1noise ~ t + I(t^2), data = pattern))$estimate
 pattern$fity <- coef[1] +
               coef[2]*pattern$t +
               coef[3]*(pattern$t)^2
-p1 <- ggplot(data = pattern) +
-        geom_point(aes(x = t, y = y1), size = 2, col = "red") +
+ggplot(data = pattern) +
+        geom_point(aes(x = t, y = y1noise), size = 2, col = "red") +
         geom_line(aes(x = t, y = fity)) +
         scale_x_continuous(limits=c(0, n), breaks = seq(0, n, 2)) +
         scale_y_continuous(limits=c(0, 150), breaks = seq(0, 150, 10)) +
-        labs(title = "Non-linear pattern\nfitted trend - polynomial", x = "t", y = "result") +
+        labs(title = "Non-linear pattern\nfitted trend - quadratic", x = "t", y = "result") +
         JT.theme
-pattern$lny1 <- log(pattern$y1)
-coef <- tidy(lm(lny1 ~ t, data = pattern))$estimate
-pattern$fityln <- exp(coef[1])*exp(coef[2]*pattern$t)
-p2 <- ggplot(data = pattern) +
-        geom_point(aes(x = t, y = y1), size = 2, col = "red") +
-        geom_line(aes(x = t, y = fityln)) +
-        scale_x_continuous(limits=c(0, n), breaks = seq(0, n, 2)) +
-        scale_y_continuous(limits=c(0, 150), breaks = seq(0, 150, 10)) +
-        labs(title = "Non-linear pattern\nfitted trend - exponential", x = "t", y = "result") +
-        JT.theme
-grid.arrange(p1, p2, nrow=1)
 @
 
 \begin{marginfigure}
 \includegraphics[width=1\textwidth]{PTS-polytrend}
-\caption{Polynomial trendline}
+\caption{Quadratic trendline}
 \label{fig:polytrend}
 \setfloatalignment{b}
 \end{marginfigure}
 
-Other functions are possible. We can also try a recursive formula. To see which lag we should use we first calculate the partial autocorrelation (Figure~\ref{fig:pacftrend}). There is a clear correlation with lag1. Then we look for a linear regression between the time series and its lag1. To reconstruct the time series based on the recursive equation we need to specify the starting value $y_{1}$.
+Our trend function in Figure~\ref{fig:polytrend} is good, but not great. Of course, other choices for the trend function are possible: we could try an exponential function etc. But in the end we could find a function that comes close to the measurements. It would be very tempting to use this function to make forecasts. However there are two serious objections to using this approach for forecasting:
+\begin{itemize}
+	\item Regression results are useful to make predictions \emph{within the range where the regression is made}. Forecasting is per definition about time points into the future, which means that we have to \emph{extrapolate}\index{extrapolation} outside the range. Trend functions obtained with linear regression will probably behave very well within the range, but can fail spectacularly outside the range.
+	\item Linear regression methods are based on assumptions. One of them is that the \emph{residuals}, the difference between actual and calculated value, are \emph{independent}\index{independency!residuals} and that the variance of the residuals is constant. In other words: the time series of the residuals should be \emph{second order stationary}. This is usually not true, and the main cause of this is \emph{autocorrelation}.
+\end{itemize}
 
-<<label=pacftrend, fig=TRUE, include=FALSE, echo=FALSE>>=
-part <- data.frame(lag = pacf(pattern$y1, lag.max=10, plot = FALSE)$lag, 
-                   acf = pacf(pattern$y1, lag.max=10, plot = FALSE)$acf)
-p1 <- ggplot(data = part, aes(x = lag, y = acf)) +
-        geom_segment(aes(xend = lag, yend = 0), size = 3) +
-        scale_x_continuous(limits=c(0, 10), breaks = seq(0,10,1)) +
-        scale_y_continuous(limits=c(0, 1), breaks = seq(0,1,0.1)) +
-        labs(title = "Partial autocorrelation", x = "t", y = "result") +
-        JT.theme
+\subsection{Autocorrelation of the residuals}
+<<label=lintrend2, fig=TRUE, include=FALSE, echo=FALSE>>=
 n <- 20
-coef <- tidy(lm(y1[2:n] ~ y1[1:(n-1)], data = pattern))$estimate
-pattern$yrec[1] <- 5
-for(i in seq(2, n, 1)) {pattern$yrec[i] = coef[1] + coef[2]*pattern$yrec[i-1]}
-p2 <- ggplot(data = pattern) +
-        geom_point(aes(x = t, y = y1), size = 2, col = "red") +
-        geom_line(aes(x = t, y = yrec)) +
-        scale_x_continuous(limits=c(0, n), breaks = seq(0, n, 2)) +
-        scale_y_continuous(limits=c(0, 150), breaks = seq(0, 150, 10)) +
-        labs(title = "Non-linear pattern\nfitted trend - recursive", x = "t", y = "result") +
+lintrend2 <- data.frame(t = seq(1, n, 1), 
+                       y = 0,
+                       ynoise = 0,
+                       residnoise = 0,
+                       ynoiserec = 0,
+                       residnoiserec =0)
+eps <- rnorm(n, 0, 0.5)
+lintrend2$y[1] <- 5
+for (i in seq(2, n, 1)) {lintrend2$y[i] = lintrend2$y[i-1] + 0.2}
+lintrend2$ynoise <- lintrend2$y + eps
+lintrend2$residnoise <- lintrend2$ynoise - lintrend2$y
+lintrend2$ynoiserec[1] <- 5
+for (i in seq(2, n, 1)) {lintrend2$ynoiserec[i] = lintrend2$ynoiserec[i-1] + 0.2 + eps[i]}
+lintrend2$residnoiserec <- lintrend2$ynoiserec - lintrend2$y
+ggplot(data = lintrend2) +
+        geom_line(aes(x = t, y = y), size = 1, col = "red") +
+        geom_point(aes(x = t, y = ynoise), size = 2, col = "blue") +
+        geom_point(aes(x = t, y = ynoiserec), size = 2, col = "black") +
+        scale_x_continuous(limits=c(0, n), breaks = seq(0,n,1)) +
+        scale_y_continuous(limits=c(0, 12), breaks = seq(0,12,1)) +
+        labs(title = "Time series with error term", x = "t", y = "result") +
         JT.theme
-grid.arrange(p1, p2, nrow=1)
 @
 
-\begin{marginfigure}
-\includegraphics[width=1\textwidth]{PTS-pacftrend}
-\caption{Trend fitted by a recursive relation}
-\label{fig:pacftrend}
+\begin{marginfigure}[6cm]
+\includegraphics[width=1\textwidth]{PTS-lintrend2}
+\caption{Time series with error term}
+\label{fig:lintrend2}
 \setfloatalignment{b}
 \end{marginfigure}
 
+In Figure~\ref{fig:lintrend2} we have a time series with a perfect linear trend (red). This is very unrealistic because we know that any time series is only one of many possible representations, because $Y_{t}$ is a chance variable. So we should add some chance element into the definition of the time series. A standard procedure is to add some noise to each measurement $y_{t}$:
+
+\begin{equation}
+	y = b_{0} + b_{1}t + \epsilon \quad with \quad \epsilon=N(0,\sigma)
+\end{equation}
+
+and we get the time series in blue. This is close around the trend line.
+
+However, when we build up the time series with the recursion formula \emph{using the same values for $\epsilon$ for each value of $t$}
+\begin{equation}
+	y_{t+1} = y_{t} + b_{1} + \epsilon_{t+1} \quad with \quad \epsilon_{t+1}=N(0,\sigma)
+\end{equation}
+
+we get a quite different time series (black). The reason is that each value $y_{t}$ has its own error $\epsilon_{t}$ but it also carries with it (part of) the error of $y_{t-1}$, and the errors in all previous values. This means that the error at time point $t$ will depend on previous errors. In other words: there is \emph{autocorrelation} within the time series of the errors.
 
 \subsection{The random walk}\index{random walk}\index{dependency!random walk}
 
