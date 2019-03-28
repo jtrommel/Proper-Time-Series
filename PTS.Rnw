@@ -461,7 +461,7 @@ and the \emph{sample autocorrelation function Lagk} is defined by:
 	r_{k}=\frac{c_{k}}{c_{0}}
 \end{equation}
 
-From this definition it is clear that $r_{0}=1$, which is what we expected: every time series is perfectly correlated with itself at Lag0. The \textbf{\textsf{R}}-function \textit{acf} gives us a graph of the autocorrelation within a time series for different lags. For our example where $y_{t}=5+0.2t$ ($n=1000$) we see in Figure~\ref{fig:autocorlin} perfect autocorrelation for all lags.
+From this definition it is clear that $r_{0}=1$, which is what we expected: every time series is perfectly correlated with itself at Lag0. The \textbf{\textsf{R}}-function \textit{acf} gives us a graph of the autocorrelation within a time series for different lags. For our example where $y_{t}=5+0.2t$ ($n=1000$) we see in Figure~\ref{fig:autocorlin} perfect autocorrelation for all lags. The blue lines indicate the confidence interval for the hypothesis that lagk is not autocorrelated\sidenote[][+4cm]{CIhigh = qnorm(0.975)/sqrt(n)}.
 
 <<label=autocorlin, fig=TRUE, include=FALSE, echo=FALSE>>=
 n <- 1000
@@ -469,15 +469,20 @@ autocorlin <- data.frame(t = seq(1,n), y = 0)
 autocorlin$y <- 5 + 0.2*autocorlin$t
 autolin <- data.frame(lag = acf(autocorlin$y, lag.max=10, plot = FALSE)$lag, 
                    acf = acf(autocorlin$y, lag.max=10, plot = FALSE)$acf)
+ci.high <- qnorm(0.975)/sqrt(n)
+ci.low <- - ci.high
 ggplot(data = autolin, aes(x = lag, y = acf)) +
-        geom_segment(aes(xend = lag, yend = 0), size = 3) +
+        geom_segment(aes(xend = lag, yend = 0), alpha = 0.4, size = 2) +
+        geom_hline(yintercept = 0) +
+        geom_hline(yintercept = ci.high, linetype = "dashed", col = "blue") +
+        geom_hline(yintercept = ci.low, linetype = "dashed", col = "blue") +
         scale_x_continuous(limits=c(0, 10), breaks = seq(0,10,1)) +
         scale_y_continuous(limits=c(-1, 1), breaks = seq(-1,1,0.1)) +
-        labs(title = "Autocorrelation (linear dependency)", x = "t", y = "result") +
+        labs(title = "Autocorrelation (linear dependency)", x = "lag", y = "result") +
         JT.theme
 @
 
-\begin{marginfigure}[-2cm]
+\begin{marginfigure}[-8cm]
 \includegraphics[width=1\textwidth]{PTS-autocorlin}
 \caption{Autocorrelation: linear dependency}
 \label{fig:autocorlin}
@@ -491,15 +496,20 @@ n <- 1000
 autocornorm <- data.frame(t = seq(1,n), y = rnorm(n, 0, 1))
 auto <- data.frame(lag = acf(autocornorm$y, lag.max=10, plot = FALSE)$lag, 
                    acf = acf(autocornorm$y, lag.max=10, plot = FALSE)$acf)
+ci.high <- qnorm(0.975)/sqrt(n)
+ci.low <- - ci.high
 ggplot(data = auto, aes(x = lag, y = acf)) +
-        geom_segment(aes(xend = lag, yend = 0), size = 3) +
+        geom_segment(aes(xend = lag, yend = 0), alpha = 0.4, size = 2) +
+        geom_hline(yintercept = 0) +
+        geom_hline(yintercept = ci.high, linetype = "dashed", col = "blue") +
+        geom_hline(yintercept = ci.low, linetype = "dashed", col = "blue") +
         scale_x_continuous(limits=c(0, 10), breaks = seq(0,10,1)) +
         scale_y_continuous(limits=c(-1, 1), breaks = seq(-1,1,0.1)) +
-        labs(title = "Autocorrelation (IID-constructed)", x = "t", y = "result") +
+        labs(title = "Autocorrelation (IID-constructed)", x = "lag", y = "result") +
         JT.theme
 @
 
-\begin{marginfigure}[0.5cm]
+\begin{marginfigure}[0cm]
 \includegraphics[width=1\textwidth]{PTS-autocornorm}
 \caption{Autocorrelation: IID-constructed}
 \label{fig:autocornorm}
@@ -529,11 +539,16 @@ A more general definition of the \emph{partial autocorrelation at lagk} as the c
 <<label=pautocorlin, fig=TRUE, include=FALSE, echo=FALSE>>=
 part <- data.frame(lag = pacf(autocorlin$y, lag.max=10, plot = FALSE)$lag, 
                    acf = pacf(autocorlin$y, lag.max=10, plot = FALSE)$acf)
+ci.high <- qnorm(0.975)/sqrt(n)
+ci.low <- - ci.high
 ggplot(data = part, aes(x = lag, y = acf)) +
-        geom_segment(aes(xend = lag, yend = 0), size = 3) +
+        geom_segment(aes(xend = lag, yend = 0), alpha = 0.4, size = 2) +
+        geom_hline(yintercept = 0) +
+        geom_hline(yintercept = ci.high, linetype = "dashed", col = "blue") +
+        geom_hline(yintercept = ci.low, linetype = "dashed", col = "blue") +
         scale_x_continuous(limits=c(0, 10), breaks = seq(0,10,1)) +
         scale_y_continuous(limits=c(-1, 1), breaks = seq(-1,1,0.1)) +
-        labs(title = "Partial autocorrelation (linear dependency)", x = "t", y = "result") +
+        labs(title = "Partial autocorrelation (linear dependency)", x = "lag", y = "result") +
         JT.theme
 @
 
@@ -668,7 +683,8 @@ The first terms of time series that follows from this are:
 	  y_{1} &= b_{0}+b_{1}+\epsilon_{1}(0,\sigma) \\
 	  y_{2} &= b_{0}+2b_{1}+\epsilon_{2}(0,\sigma) \\
 	  y_{3} &= b_{0}+3b_{1}+\epsilon_{3}(0,\sigma) \\
-	  \ldots &
+	  \ldots & \\
+	  y_{t} &= b_{0}+tb_{1}+\epsilon_{t}(0,\sigma)
 	\end{split}
 \label{eq:cnsterr}
 \end{equation}
@@ -723,12 +739,18 @@ However, when we construct the time series with the recursion formula \emph{usin
 	  y_{1} &= b_{0} + b_{1} + \epsilon_{1}(0,\sigma) \\
 	  y_{2} &= y_{1} + b_{1} + \epsilon_{2}(0,\sigma) = b_{0} + 2b_{1} + \epsilon_{1}(0,\sigma) + \epsilon_{2}(0,\sigma) \\
 	  y_{3} &= y_{2} + b_{1} + \epsilon_{3}(0,\sigma) = b_{0} + 3b_{1} + \epsilon_{1}(0,\sigma) + \epsilon_{2}(0,\sigma) + \epsilon_{3}(0,\sigma)\\
-	  \ldots &
+	  \ldots & \\
+	  y_{t} &= y_{t-1} + b_{1} + \epsilon_{t}(0,\sigma) = b_{0} + tb_{1} + \epsilon_{1}(0,\sigma) + \epsilon_{2}(0,\sigma) + \ldots + \epsilon_{t}(0,\sigma) 
 	\end{split}
 \label{eq:recurerror}
 \end{equation}
 
-which is quite a different time series (black). We can see in (\ref{eq:recurerror}) that each value $y_{t}$ has its own error $\epsilon_{t}$ but it also carries with it the error of $y_{t-1}$, and the errors in all previous values. This means that the error at time point $t$ will depend on previous errors. In other words: there is \emph{autocorrelation} within the time series of the errors. In Figure~\ref{fig:lintrend3} we have two other time series constructed with (\ref{eq:recurerror}).
+which is quite a different time series (black). We can see in (\ref{eq:recurerror}) that each value $y_{t}$ has its own error $\epsilon_{t}$ but it also carries with it the error of $y_{t-1}$, and the errors in all previous values. This means that the error at time point $t$ will depend on previous errors. In other words: there is \emph{autocorrelation} within the time series of the errors. The variance will steadily increase and we can write:
+\begin{equation}
+	y_{t} = b_{0} + tb_{1} + \epsilon_{t}(0,\sqrt{t}\sigma)
+\end{equation}
+
+In Figure~\ref{fig:lintrend3} we have two other time series constructed with (\ref{eq:recurerror}) and we can see that the variance is larger that for the ''blue" time series.
 
 <<label=lintrend3, fig=TRUE, include=FALSE, echo=FALSE>>=
 ggplot(data = lintrend2) +
@@ -743,14 +765,14 @@ ggplot(data = lintrend2) +
         JT.theme
 @
 
-\begin{marginfigure}[-2cm]
+\begin{marginfigure}[0cm]
 \includegraphics[width=1\textwidth]{PTS-lintrend3}
 \caption{Time series with error term}
 \label{fig:lintrend3}
 \setfloatalignment{b}
 \end{marginfigure}
 
-We can calculate the \emph{residuals}, the difference between the actual value and the calculated values from the linear regression. For the time series constructed with equation (\ref{eq:cnsterr}) we get Figure~\ref{fig:cnsterr}: the residuals on the left, the autocorrelation for different lags on the right. There is no autocorrelation.
+We can calculate the \emph{residuals}, the difference between the actual value and the calculated values from the linear regression. For the time series constructed with equation (\ref{eq:cnsterr}) we get Figure~\ref{fig:cnsterr}: the residuals on the left, the autocorrelation for different lags on the right. There is a hint of autocorrelation at lag1 but it just scrapes the lower confidence interval.
 
 <<label=cnsterr, fig=TRUE, include=FALSE, echo=FALSE>>=
 p1 <- ggplot(data = lintrend2) +
@@ -761,8 +783,13 @@ p1 <- ggplot(data = lintrend2) +
         JT.theme
 autocor <- data.frame(lag = acf(lintrend2$residnoise, lag.max=10, plot = FALSE)$lag, 
                    acf = acf(lintrend2$residnoise, lag.max=10, plot = FALSE)$acf)
+ci.high <- qnorm(0.975)/sqrt(n)
+ci.low <- - ci.high
 p2 <- ggplot(data = autocor, aes(x = lag, y = acf)) +
-        geom_segment(aes(xend = lag, yend = 0), size = 3) +
+        geom_segment(aes(xend = lag, yend = 0), alpha = 0.4, size = 2) +
+        geom_hline(yintercept = 0) +
+        geom_hline(yintercept = ci.high, linetype = "dashed", col = "blue") +
+        geom_hline(yintercept = ci.low, linetype = "dashed", col = "blue") +
         scale_x_continuous(limits=c(0, 10), breaks = seq(0,10,1)) +
         scale_y_continuous(limits=c(-1, 1), breaks = seq(-1,1,0.1)) +
         labs(title = "Autocorrelation residuals", x = "lag", y = "acf") +
@@ -771,13 +798,15 @@ grid.arrange(p1, p2, nrow=1)
 @
 
 \begin{figure}
-\includegraphics[width=0.7\textwidth]{PTS-cnsterr}
+\begin{center}
+\includegraphics[width=0.6\textwidth]{PTS-cnsterr}
 \caption{Residuals }
 \label{fig:cnsterr}
 \setfloatalignment{b}
+\end{center}
 \end{figure}
 
-For the time series constructed with equation~\ref{eq:recurerror} we get Figure~\ref{fig:cumerr}. There is clear autocorrelation within the residuals.
+For the time series constructed with equation~\ref{eq:recurerror} we get Figure~\ref{fig:cumerr}. Now there is clear autocorrelation within the residuals at lag1 and lag2.
 
 <<label=cumerr, fig=TRUE, include=FALSE, echo=FALSE>>=
 p1 <- ggplot(data = lintrend2) +
@@ -788,8 +817,13 @@ p1 <- ggplot(data = lintrend2) +
         JT.theme
 autocor <- data.frame(lag = acf(lintrend2$residnoiserec, lag.max=10, plot = FALSE)$lag, 
                    acf = acf(lintrend2$residnoiserec, lag.max=10, plot = FALSE)$acf)
+ci.high <- qnorm(0.975)/sqrt(n)
+ci.low <- - ci.high
 p2 <- ggplot(data = autocor, aes(x = lag, y = acf)) +
-        geom_segment(aes(xend = lag, yend = 0), size = 3) +
+        geom_segment(aes(xend = lag, yend = 0), alpha = 0.4, size = 2) +
+        geom_hline(yintercept = 0) +
+        geom_hline(yintercept = ci.high, linetype = "dashed", col = "blue") +
+        geom_hline(yintercept = ci.low, linetype = "dashed", col = "blue") +
         scale_x_continuous(limits=c(0, 10), breaks = seq(0,10,1)) +
         scale_y_continuous(limits=c(-1, 1), breaks = seq(-1,1,0.1)) +
         labs(title = "Autocorrelation residuals", x = "lag", y = "acf") +
@@ -798,11 +832,129 @@ grid.arrange(p1, p2, nrow=1)
 @
 
 \begin{figure}
-\includegraphics[width=0.8\textwidth]{PTS-cumerr}
+\begin{center}
+\includegraphics[width=0.6\textwidth]{PTS-cumerr}
 \caption{Residuals: autocorrelated time series}
 \label{fig:cumerr}
 \setfloatalignment{b}
+\end{center}
 \end{figure}
+
+\subsection{Making use of autocorrelation}
+
+The presence of autocorrelation within time series seems to be a great nuisance. However, we can make good use of it. When our time series has the underlying structure given by:
+\begin{equation}
+	y_{t}=y_{t-1} + b_{1} + \epsilon_{t}(0,\sigma)
+\label{eq:linstruc}
+\end{equation}
+
+it follows that:
+\begin{equation}
+	y_{t} - y_{t-1} = b_{1} + \epsilon_{t}(0,\sigma) = \epsilon_{t}(b_{1},\sigma)
+\end{equation}
+
+In other words: if a time series has the underlying structure given by equation (\ref{eq:linstruc}), then a new time series constructed by taking the difference of each value $y_{t}$ and its previous value $y_{t-1}$ will be a stationary time series with constant mean $\mu=b_{1}$ and constant standard deviation $\sigma=\sigma$. This knowledge can get us started with making our first forecast!
+
+\newpage
+As an example we start with the following time series in Figure~\ref{fig:lintrend4}\sidenote{the black time series from Figure~\ref{fig:lintrend2}}.
+
+<<label=lintrend4, fig=TRUE, include=FALSE, echo=FALSE>>=
+ggplot(data = lintrend2) +
+        geom_point(aes(x = t, y = ynoiserec), size = 3, col = "black", shape = 3) +
+        scale_x_continuous(limits=c(0, n), breaks = seq(0,n,5)) +
+        scale_y_continuous(limits=c(0, 20), breaks = seq(0,20,1)) +
+        labs(title = "Given time series", x = "t", y = "result") +
+        JT.theme
+@
+
+\begin{marginfigure}[0cm]
+\includegraphics[width=1\textwidth]{PTS-lintrend4}
+\caption{Given time series}
+\label{fig:lintrend4}
+\setfloatalignment{b}
+\end{marginfigure}
+
+With some goodwill we could detect a linear trend, which means that the underlying recursive formula associated with this time series could be of the form
+\begin{equation}
+	y_{t} = y_{t-1} + b_{1} \quad t=1 \ldots n
+\end{equation}
+
+We calculate a new time series $z_{t}$ given by:
+\begin{equation}
+	z_{t} = y_{t} - y_{t-1} \quad t=2 \ldots n
+\end{equation}
+
+<<label=lintrend5, fig=TRUE, include=FALSE, echo=FALSE>>=
+lintrend$div[1] <- NA
+lintrend2$div[2:n] <- diff(lintrend2$ynoiserec)
+mudiv <- mean(lintrend2$div[2:n])
+sddiv <- sd(lintrend2$div[2:n])
+p1 <- ggplot(data = lintrend2) +
+        geom_point(aes(x = t, y = div), size = 3, col = "black", shape = 3) +
+        scale_x_continuous(limits=c(0, n), breaks = seq(0,n,5)) +
+        scale_y_continuous(limits=c(-3, 3), breaks = seq(-3,3,1)) +
+        labs(title = "Time series $z_{t}=y_{t}-y_{t-1}$", x = "t", y = "result") +
+        JT.theme
+autocor <- data.frame(lag = acf(lintrend2$div[2:n], lag.max=10, plot = FALSE)$lag, 
+                   acf = acf(lintrend2$div[2:n], lag.max=10, plot = FALSE)$acf)
+ci.high <- qnorm(0.975)/sqrt(n)
+ci.low <- - ci.high
+p2 <- ggplot(data = autocor, aes(x = lag, y = acf)) +
+        geom_segment(aes(xend = lag, yend = 0), alpha = 0.4, size = 2) +
+        geom_hline(yintercept = 0) +
+        geom_hline(yintercept = ci.high, linetype = "dashed", col = "blue") +
+        geom_hline(yintercept = ci.low, linetype = "dashed", col = "blue") +
+        scale_x_continuous(limits=c(0, 10), breaks = seq(0,10,1)) +
+        scale_y_continuous(limits=c(-1, 1), breaks = seq(-1,1,0.1)) +
+        labs(title = "Autocorrelation $z_{t}$", x = "lag", y = "acf") +
+        JT.theme
+grid.arrange(p1, p2, nrow=1)
+@
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=0.8\textwidth]{PTS-lintrend5}
+\caption{Differenced time series}
+\label{fig:lintrend5}
+\setfloatalignment{b}
+\end{center}
+\end{figure}
+
+This looks pretty random, and the autocorrelation graph indicates that there is probably no autocorrelation. The mean of the differenced time series is \Sexpr{round(mudiv,3)} and the standard deviation is \Sexpr{round(sddiv,3)}. Our first tentative forecast for the next k time points goes as follows:
+\begin{itemize}
+	\item the forecasted values are given by $y_{i} = y_{i-1}$ + \Sexpr{round(mudiv,3)}  for i=(n+1), $\ldots$ , (n+k)
+	\item the 95\% upper confidence level is given by $y_{i}$ + 1.96*$\sqrt{i-n}$*\Sexpr{round(sddiv,3)}  for i=(n+1), $\ldots$ , (n+k)
+	\item the 95\% lower confidence level is given by $y_{i}$ + 1.96*$\sqrt{i-n}$*\Sexpr{round(sddiv,3)}  for i=(n+1), $\ldots$ , (n+k)
+\end{itemize}
+
+<<label=lintrend6, fig=TRUE, include=FALSE, echo=FALSE>>=
+k <- 5
+lintrend2.forecast <- data.frame(i = seq(1, k, 1), t = 0, y = 0, ylow = 0, yhigh = 0)
+lintrend2.forecast$t <- lintrend2.forecast$i + n
+lintrend2.forecast$y[1] <- lintrend2$ynoiserec[n] + mudiv
+lintrend2.forecast$ylow[1] <- lintrend2.forecast$y[1] - 1.96*sddiv
+lintrend2.forecast$yhigh[1] <- lintrend2.forecast$y[1] + 1.96*sddiv
+for (i in seq(2, k, 1)) {
+  lintrend2.forecast$y[i] <- lintrend2.forecast$y[i-1] + mudiv
+  lintrend2.forecast$ylow[i] <- lintrend2.forecast$y[i] - 1.96*sqrt(i)*sddiv
+  lintrend2.forecast$yhigh[i] <- lintrend2.forecast$y[i] + 1.96*sqrt(i)*sddiv
+}
+ggplot() +
+        geom_point(data = lintrend2, aes(x = t, y = ynoiserec), size = 3, col = "black", shape = 3) +
+        geom_line(data = lintrend2.forecast, aes(x = t, y = y), size = 1, col = "blue") +
+        geom_ribbon(data = lintrend2.forecast, aes(x = t, ymin = ylow, ymax = yhigh), fill = "red", alpha = 0.3) +
+        scale_x_continuous(limits=c(0, (n+k)), breaks = seq(0,(n+k),5)) +
+        scale_y_continuous(limits=c(0, 25), breaks = seq(0,25,1)) +
+        labs(title = "Forecast of time series", x = "t", y = "result") +
+        JT.theme
+@
+
+\begin{marginfigure}[-2cm]
+\includegraphics[width=1\textwidth]{PTS-lintrend6}
+\caption{Forecast for given time series}
+\label{fig:lintrend6}
+\setfloatalignment{b}
+\end{marginfigure}
 
 \subsection{The random walk}\index{random walk}\index{dependency!random walk}
 
