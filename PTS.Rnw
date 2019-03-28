@@ -472,7 +472,7 @@ autolin <- data.frame(lag = acf(autocorlin$y, lag.max=10, plot = FALSE)$lag,
 ggplot(data = autolin, aes(x = lag, y = acf)) +
         geom_segment(aes(xend = lag, yend = 0), size = 3) +
         scale_x_continuous(limits=c(0, 10), breaks = seq(0,10,1)) +
-        scale_y_continuous(limits=c(0, 1), breaks = seq(0,1,0.1)) +
+        scale_y_continuous(limits=c(-1, 1), breaks = seq(-1,1,0.1)) +
         labs(title = "Autocorrelation (linear dependency)", x = "t", y = "result") +
         JT.theme
 @
@@ -494,7 +494,7 @@ auto <- data.frame(lag = acf(autocornorm$y, lag.max=10, plot = FALSE)$lag,
 ggplot(data = auto, aes(x = lag, y = acf)) +
         geom_segment(aes(xend = lag, yend = 0), size = 3) +
         scale_x_continuous(limits=c(0, 10), breaks = seq(0,10,1)) +
-        scale_y_continuous(limits=c(0, 1), breaks = seq(0,1,0.1)) +
+        scale_y_continuous(limits=c(-1, 1), breaks = seq(-1,1,0.1)) +
         labs(title = "Autocorrelation (IID-constructed)", x = "t", y = "result") +
         JT.theme
 @
@@ -532,7 +532,7 @@ part <- data.frame(lag = pacf(autocorlin$y, lag.max=10, plot = FALSE)$lag,
 ggplot(data = part, aes(x = lag, y = acf)) +
         geom_segment(aes(xend = lag, yend = 0), size = 3) +
         scale_x_continuous(limits=c(0, 10), breaks = seq(0,10,1)) +
-        scale_y_continuous(limits=c(0, 1), breaks = seq(0,1,0.1)) +
+        scale_y_continuous(limits=c(-1, 1), breaks = seq(-1,1,0.1)) +
         labs(title = "Partial autocorrelation (linear dependency)", x = "t", y = "result") +
         JT.theme
 @
@@ -637,11 +637,11 @@ ggplot(data = pattern) +
         geom_line(aes(x = t, y = fity)) +
         scale_x_continuous(limits=c(0, n), breaks = seq(0, n, 2)) +
         scale_y_continuous(limits=c(0, 150), breaks = seq(0, 150, 10)) +
-        labs(title = "Non-linear pattern\nfitted trend - quadratic", x = "t", y = "result") +
+        labs(title = "Non-linear pattern: fitted trend - quadratic", x = "t", y = "result") +
         JT.theme
 @
 
-\begin{marginfigure}
+\begin{marginfigure}[3cm]
 \includegraphics[width=1\textwidth]{PTS-polytrend}
 \caption{Quadratic trendline}
 \label{fig:polytrend}
@@ -655,53 +655,154 @@ Our trend function in Figure~\ref{fig:polytrend} is good, but not great. Of cour
 \end{itemize}
 
 \subsection{Autocorrelation of the residuals}
+
+In Figure~\ref{fig:lintrend2} we have a time series with a perfect linear trend (red). This is very unrealistic because we know that every time series is only one of many possible representations (because $Y_{t}$ is a chance variable). So we should add some chance element into the definition of the time series. When we use linear regression we assume that the chance element for each measurement $y_{t}$ is independently taken from a (normal) distribution with mean $\mu=0$ and a constant variance $\sigma^{2}$:
+
+\begin{equation}
+	y = b_{0} + b_{1}t + \epsilon \quad with \quad \epsilon=N(0,\sigma)
+\end{equation}
+
+The first terms of time series that follows from this are:
+\begin{equation}
+	\begin{split}
+	  y_{1} &= b_{0}+b_{1}+\epsilon_{1}(0,\sigma) \\
+	  y_{2} &= b_{0}+2b_{1}+\epsilon_{2}(0,\sigma) \\
+	  y_{3} &= b_{0}+3b_{1}+\epsilon_{3}(0,\sigma) \\
+	  \ldots &
+	\end{split}
+\label{eq:cnsterr}
+\end{equation}
+
+which we see in Figure~\ref{fig:lintrend2} in blue.
 <<label=lintrend2, fig=TRUE, include=FALSE, echo=FALSE>>=
-n <- 20
+set.seed(2017)
+n <- 50
 lintrend2 <- data.frame(t = seq(1, n, 1), 
                        y = 0,
                        ynoise = 0,
                        residnoise = 0,
                        ynoiserec = 0,
+                       ynoiserec2 = 0,
+                       ynoiserec3 = 0,
                        residnoiserec =0)
-eps <- rnorm(n, 0, 0.5)
-lintrend2$y[1] <- 5
+sigma <- 1
+eps <- rnorm(n, 0, sigma)
+lintrend2$y[1] <- 5 
 for (i in seq(2, n, 1)) {lintrend2$y[i] = lintrend2$y[i-1] + 0.2}
 lintrend2$ynoise <- lintrend2$y + eps
 lintrend2$residnoise <- lintrend2$ynoise - lintrend2$y
-lintrend2$ynoiserec[1] <- 5
+lintrend2$ynoiserec[1] <- 5 + eps[1]
 for (i in seq(2, n, 1)) {lintrend2$ynoiserec[i] = lintrend2$ynoiserec[i-1] + 0.2 + eps[i]}
+eps2 <- rnorm(n, 0, sigma)
+lintrend2$ynoiserec2[1] <- 5 + eps2[1]
+for (i in seq(2, n, 1)) {lintrend2$ynoiserec2[i] = lintrend2$ynoiserec2[i-1] + 0.2 + eps2[i]}
+eps3 <- rnorm(n, 0, sigma)
+lintrend2$ynoiserec3[1] <- 5 + eps3[1]
+for (i in seq(2, n, 1)) {lintrend2$ynoiserec3[i] = lintrend2$ynoiserec3[i-1] + 0.2 + eps3[i]}
 lintrend2$residnoiserec <- lintrend2$ynoiserec - lintrend2$y
 ggplot(data = lintrend2) +
         geom_line(aes(x = t, y = y), size = 1, col = "red") +
         geom_point(aes(x = t, y = ynoise), size = 2, col = "blue") +
-        geom_point(aes(x = t, y = ynoiserec), size = 2, col = "black") +
-        scale_x_continuous(limits=c(0, n), breaks = seq(0,n,1)) +
-        scale_y_continuous(limits=c(0, 12), breaks = seq(0,12,1)) +
+        geom_point(aes(x = t, y = ynoiserec), size = 6, col = "black", shape = "+") +
+        scale_x_continuous(limits=c(0, n), breaks = seq(0,n,5)) +
+        scale_y_continuous(limits=c(0, 20), breaks = seq(0,20,1)) +
         labs(title = "Time series with error term", x = "t", y = "result") +
         JT.theme
 @
 
-\begin{marginfigure}[6cm]
+\begin{marginfigure}[0cm]
 \includegraphics[width=1\textwidth]{PTS-lintrend2}
 \caption{Time series with error term}
 \label{fig:lintrend2}
 \setfloatalignment{b}
 \end{marginfigure}
 
-In Figure~\ref{fig:lintrend2} we have a time series with a perfect linear trend (red). This is very unrealistic because we know that any time series is only one of many possible representations, because $Y_{t}$ is a chance variable. So we should add some chance element into the definition of the time series. A standard procedure is to add some noise to each measurement $y_{t}$:
-
+However, when we construct the time series with the recursion formula \emph{using the same values for $\epsilon$ for each value of $t$} we get
 \begin{equation}
-	y = b_{0} + b_{1}t + \epsilon \quad with \quad \epsilon=N(0,\sigma)
+  \begin{split}
+	  y_{1} &= b_{0} + b_{1} + \epsilon_{1}(0,\sigma) \\
+	  y_{2} &= y_{1} + b_{1} + \epsilon_{2}(0,\sigma) = b_{0} + 2b_{1} + \epsilon_{1}(0,\sigma) + \epsilon_{2}(0,\sigma) \\
+	  y_{3} &= y_{2} + b_{1} + \epsilon_{3}(0,\sigma) = b_{0} + 3b_{1} + \epsilon_{1}(0,\sigma) + \epsilon_{2}(0,\sigma) + \epsilon_{3}(0,\sigma)\\
+	  \ldots &
+	\end{split}
+\label{eq:recurerror}
 \end{equation}
 
-and we get the time series in blue. This is close around the trend line.
+which is quite a different time series (black). We can see in (\ref{eq:recurerror}) that each value $y_{t}$ has its own error $\epsilon_{t}$ but it also carries with it the error of $y_{t-1}$, and the errors in all previous values. This means that the error at time point $t$ will depend on previous errors. In other words: there is \emph{autocorrelation} within the time series of the errors. In Figure~\ref{fig:lintrend3} we have two other time series constructed with (\ref{eq:recurerror}).
 
-However, when we build up the time series with the recursion formula \emph{using the same values for $\epsilon$ for each value of $t$}
-\begin{equation}
-	y_{t+1} = y_{t} + b_{1} + \epsilon_{t+1} \quad with \quad \epsilon_{t+1}=N(0,\sigma)
-\end{equation}
+<<label=lintrend3, fig=TRUE, include=FALSE, echo=FALSE>>=
+ggplot(data = lintrend2) +
+        geom_line(aes(x = t, y = y), size = 1, col = "red") +
+        geom_point(aes(x = t, y = ynoise), size = 1.5, col = "blue") +
+        geom_point(aes(x = t, y = ynoiserec), size = 3, col = "black", shape = 3) +
+        geom_point(aes(x = t, y = ynoiserec2), size = 3, col = color[2], shape = 4) +
+        geom_point(aes(x = t, y = ynoiserec3), size = 3, col = color[3], shape = 5) +
+        scale_x_continuous(limits=c(0, n), breaks = seq(0,n,5)) +
+        scale_y_continuous(limits=c(0, 20), breaks = seq(0,20,1)) +
+        labs(title = "Time series with error term", x = "t", y = "result") +
+        JT.theme
+@
 
-we get a quite different time series (black). The reason is that each value $y_{t}$ has its own error $\epsilon_{t}$ but it also carries with it (part of) the error of $y_{t-1}$, and the errors in all previous values. This means that the error at time point $t$ will depend on previous errors. In other words: there is \emph{autocorrelation} within the time series of the errors.
+\begin{marginfigure}[-2cm]
+\includegraphics[width=1\textwidth]{PTS-lintrend3}
+\caption{Time series with error term}
+\label{fig:lintrend3}
+\setfloatalignment{b}
+\end{marginfigure}
+
+We can calculate the \emph{residuals}, the difference between the actual value and the calculated values from the linear regression. For the time series constructed with equation (\ref{eq:cnsterr}) we get Figure~\ref{fig:cnsterr}: the residuals on the left, the autocorrelation for different lags on the right. There is no autocorrelation.
+
+<<label=cnsterr, fig=TRUE, include=FALSE, echo=FALSE>>=
+p1 <- ggplot(data = lintrend2) +
+        geom_point(aes(x = t, y = residnoise), size = 1.5, col = "blue") +
+        scale_x_continuous(limits=c(0, n), breaks = seq(0,n,5)) +
+        scale_y_continuous(limits=c(-3, 3), breaks = seq(-2, 2, 1)) +
+        labs(title = "Residuals of time series\n(based on linear regression)", x = "t", y = "result") +
+        JT.theme
+autocor <- data.frame(lag = acf(lintrend2$residnoise, lag.max=10, plot = FALSE)$lag, 
+                   acf = acf(lintrend2$residnoise, lag.max=10, plot = FALSE)$acf)
+p2 <- ggplot(data = autocor, aes(x = lag, y = acf)) +
+        geom_segment(aes(xend = lag, yend = 0), size = 3) +
+        scale_x_continuous(limits=c(0, 10), breaks = seq(0,10,1)) +
+        scale_y_continuous(limits=c(-1, 1), breaks = seq(-1,1,0.1)) +
+        labs(title = "Autocorrelation residuals", x = "lag", y = "acf") +
+        JT.theme
+grid.arrange(p1, p2, nrow=1)
+@
+
+\begin{figure}
+\includegraphics[width=0.7\textwidth]{PTS-cnsterr}
+\caption{Residuals }
+\label{fig:cnsterr}
+\setfloatalignment{b}
+\end{figure}
+
+For the time series constructed with equation~\ref{eq:recurerror} we get Figure~\ref{fig:cumerr}. There is clear autocorrelation within the residuals.
+
+<<label=cumerr, fig=TRUE, include=FALSE, echo=FALSE>>=
+p1 <- ggplot(data = lintrend2) +
+        geom_point(aes(x = t, y = residnoiserec), size = 1.5, col = "blue") +
+        scale_x_continuous(limits=c(0, n), breaks = seq(0,n,5)) +
+        scale_y_continuous(limits=c(-3, 3), breaks = seq(-2, 2, 1)) +
+        labs(title = "Residuals of time series\n(based on autocorrelation)", x = "t", y = "result") +
+        JT.theme
+autocor <- data.frame(lag = acf(lintrend2$residnoiserec, lag.max=10, plot = FALSE)$lag, 
+                   acf = acf(lintrend2$residnoiserec, lag.max=10, plot = FALSE)$acf)
+p2 <- ggplot(data = autocor, aes(x = lag, y = acf)) +
+        geom_segment(aes(xend = lag, yend = 0), size = 3) +
+        scale_x_continuous(limits=c(0, 10), breaks = seq(0,10,1)) +
+        scale_y_continuous(limits=c(-1, 1), breaks = seq(-1,1,0.1)) +
+        labs(title = "Autocorrelation residuals", x = "lag", y = "acf") +
+        JT.theme
+grid.arrange(p1, p2, nrow=1)
+@
+
+\begin{figure}
+\includegraphics[width=0.8\textwidth]{PTS-cumerr}
+\caption{Residuals: autocorrelated time series}
+\label{fig:cumerr}
+\setfloatalignment{b}
+\end{figure}
 
 \subsection{The random walk}\index{random walk}\index{dependency!random walk}
 
