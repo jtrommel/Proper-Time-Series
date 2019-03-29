@@ -884,6 +884,18 @@ We calculate a new time series $z_{t}$ given by:
 	z_{t} = y_{t} - y_{t-1} \quad t=2 \ldots n
 \end{equation}
 
+This is called a \emph{once-differenced}\index{differenced time series}\index{differencing} time series. The values of $z_{t}$ are:
+\begin{equation}
+	\begin{split}
+	  z_{1} &= NA  \\
+	  z_{2} &= y_{2} - y_{1} = b_{1}+\epsilon_{2}(0,\sigma) = \epsilon_{2}(b_{1},\sigma) \\
+	  z_{3} &= y_{3} - y_{2} = b_{1}+\epsilon_{3}(0,\sigma) = \epsilon_{3}(b_{1},\sigma) \\
+	  \ldots & \\
+	  z_{t} &= y_{t} - y_{t-1} = b_{1}+\epsilon_{t}(0,\sigma) = \epsilon_{t}(b_{1},\sigma) \\
+	\end{split}
+\end{equation}
+
+
 <<label=lintrend5, fig=TRUE, include=FALSE, echo=FALSE>>=
 lintrend$div[1] <- NA
 lintrend2$div[2:n] <- diff(lintrend2$ynoiserec)
@@ -893,7 +905,7 @@ p1 <- ggplot(data = lintrend2) +
         geom_point(aes(x = t, y = div), size = 3, col = "black", shape = 3) +
         scale_x_continuous(limits=c(0, n), breaks = seq(0,n,5)) +
         scale_y_continuous(limits=c(-3, 3), breaks = seq(-3,3,1)) +
-        labs(title = "Time series $z_{t}=y_{t}-y_{t-1}$", x = "t", y = "result") +
+        labs(title = "Time series z(t)=y(t)-y(t-1)", x = "t", y = "result") +
         JT.theme
 autocor <- data.frame(lag = acf(lintrend2$div[2:n], lag.max=10, plot = FALSE)$lag, 
                    acf = acf(lintrend2$div[2:n], lag.max=10, plot = FALSE)$acf)
@@ -906,7 +918,7 @@ p2 <- ggplot(data = autocor, aes(x = lag, y = acf)) +
         geom_hline(yintercept = ci.low, linetype = "dashed", col = "blue") +
         scale_x_continuous(limits=c(0, 10), breaks = seq(0,10,1)) +
         scale_y_continuous(limits=c(-1, 1), breaks = seq(-1,1,0.1)) +
-        labs(title = "Autocorrelation $z_{t}$", x = "lag", y = "acf") +
+        labs(title = "Autocorrelation of z(t)", x = "lag", y = "acf") +
         JT.theme
 grid.arrange(p1, p2, nrow=1)
 @
@@ -920,18 +932,25 @@ grid.arrange(p1, p2, nrow=1)
 \end{center}
 \end{figure}
 
-This looks pretty random, and the autocorrelation graph indicates that there is probably no autocorrelation. The mean of the differenced time series is \Sexpr{round(mudiv,3)} and the standard deviation is \Sexpr{round(sddiv,3)}. Our first tentative forecast for the next k time points goes as follows:
+This looks pretty random, and the autocorrelation graph indicates that there is probably no autocorrelation. The mean of the differenced time series is \Sexpr{round(mudiv,3)} and the standard deviation is \Sexpr{round(sddiv,3)}. 
+\newpage
+Our first tentative forecast (Figure~\ref{fig:lintrend6}) for the next k\sidenote{here k=5} time points goes as follows:
 \begin{itemize}
+  \item the trendline (red and dashed) is given by $y_{i} = y_{i-1}$ + \Sexpr{round(mudiv,3)}  for i=1, $\ldots$ , n
+  \item the starting point of the trendline is the ''intercept" of the linear regression through the time series data
 	\item the forecasted values are given by $y_{i} = y_{i-1}$ + \Sexpr{round(mudiv,3)}  for i=(n+1), $\ldots$ , (n+k)
+	\item the starting point of the forecast $y_{n+1}$ is equal to the last point of the trendline + \Sexpr{round(mudiv,3)}
 	\item the 95\% upper confidence level is given by $y_{i}$ + 1.96*$\sqrt{i-n}$*\Sexpr{round(sddiv,3)}  for i=(n+1), $\ldots$ , (n+k)
 	\item the 95\% lower confidence level is given by $y_{i}$ + 1.96*$\sqrt{i-n}$*\Sexpr{round(sddiv,3)}  for i=(n+1), $\ldots$ , (n+k)
 \end{itemize}
 
 <<label=lintrend6, fig=TRUE, include=FALSE, echo=FALSE>>=
+lintrend2$ytrend[1] <- lm(ynoiserec ~t, data=lintrend2)$coefficients[1]
+for (i in (seq(2, n, 1))) {lintrend2$ytrend[i] = lintrend2$ytrend[i-1] + mudiv}
 k <- 5
 lintrend2.forecast <- data.frame(i = seq(1, k, 1), t = 0, y = 0, ylow = 0, yhigh = 0)
 lintrend2.forecast$t <- lintrend2.forecast$i + n
-lintrend2.forecast$y[1] <- lintrend2$ynoiserec[n] + mudiv
+lintrend2.forecast$y[1] <- lintrend2$ytrend[n] + mudiv
 lintrend2.forecast$ylow[1] <- lintrend2.forecast$y[1] - 1.96*sddiv
 lintrend2.forecast$yhigh[1] <- lintrend2.forecast$y[1] + 1.96*sddiv
 for (i in seq(2, k, 1)) {
@@ -941,6 +960,7 @@ for (i in seq(2, k, 1)) {
 }
 ggplot() +
         geom_point(data = lintrend2, aes(x = t, y = ynoiserec), size = 3, col = "black", shape = 3) +
+        geom_line(data = lintrend2, aes(x = t, y = ytrend), size = 0.5, col = "red", linetype = "dashed") +
         geom_line(data = lintrend2.forecast, aes(x = t, y = y), size = 1, col = "blue") +
         geom_ribbon(data = lintrend2.forecast, aes(x = t, ymin = ylow, ymax = yhigh), fill = "red", alpha = 0.3) +
         scale_x_continuous(limits=c(0, (n+k)), breaks = seq(0,(n+k),5)) +
@@ -949,12 +969,29 @@ ggplot() +
         JT.theme
 @
 
-\begin{marginfigure}[-2cm]
+\begin{figure}
 \includegraphics[width=1\textwidth]{PTS-lintrend6}
 \caption{Forecast for given time series}
 \label{fig:lintrend6}
 \setfloatalignment{b}
-\end{marginfigure}
+\end{figure}
+\medskip
+It is clear that this was an easy example: we started from a self-constructed time series based on a linear trend, so it should not come as a great surprise that our assumption of a linear trend works well! When we work with a given time series we do not know anything about the trend.  Visualising the time series will give us some idea but still we have to make assumptions about the trend:
+\begin{itemize}
+	\item is it linear?
+	\item a polynomial? of what degree?
+	\item an exponential function?
+	\item a logarithmic function?
+	\item other?
+\end{itemize}
+\medskip
+So we could ask: is there a better way to find the trend?
+
+In our example we also decided that there was no autocorrelation remaining in the residuals, while there was some sign of autocorrelation at lag1 and lag2. A second question is: can we build out trend model in such a way that it further reduces serial correlation within the residuals?
+
+\subsection{Finding the trend by smoothing}
+
+
 
 \subsection{The random walk}\index{random walk}\index{dependency!random walk}
 
