@@ -71,6 +71,7 @@ library(plotly)
 library(ggfortify)
 library(latex2exp)
 library(tseries)
+library(readr)
 @
 
 % Setting the ggplot theme:
@@ -840,23 +841,26 @@ grid.arrange(p1, p2, nrow=1)
 \end{center}
 \end{figure}
 
-\subsection{Making use of autocorrelation}
 
-The presence of autocorrelation within time series seems to be a great nuisance. However, we can make good use of it. When our time series has the underlying structure given by:
+The presence of autocorrelation within a time series seems to be a great nuisance. However, we can make good use of it when our time series has the underlying (linear) structure:
 \begin{equation}
 	y_{t}=y_{t-1} + b_{1} + \epsilon_{t}(0,\sigma)
 \label{eq:linstruc}
 \end{equation}
 
-it follows that:
+We can create a new time series $z_{t}$ by making the difference between $y_{t}$ and $y_{t-1}$, called the \emph{once-differenced} time series\index{differenced time series}\index{time series!differenced}:
 \begin{equation}
-	y_{t} - y_{t-1} = b_{1} + \epsilon_{t}(0,\sigma) = \epsilon_{t}(b_{1},\sigma)
+	z_{t}=y_{t} - y_{t-1} = b_{1} + \epsilon_{t}(0,\sigma) = \epsilon_{t}(b_{1},\sigma)
+\label{eq:oncediff}
 \end{equation}
 
-In other words: if a time series has the underlying structure given by equation (\ref{eq:linstruc}), then a new time series constructed by taking the difference of each value $y_{t}$ and its previous value $y_{t-1}$ will be a stationary time series with constant mean $\mu=b_{1}$ and constant standard deviation $\sigma=\sigma$. This knowledge can get us started with making our first forecast!
+We can see from equation (\ref{eq:oncediff}) that the \emph{once-differenced} time series $z_{t}$ is a stationary time series with constant mean $\mu=b_{1}$ and constant standard deviation $\sigma=\sigma$. And this information can be used to make our first forecast.
 
 \newpage
-As an example we start with the following time series in Figure~\ref{fig:lintrend4}\sidenote{the black time series from Figure~\ref{fig:lintrend2}}.
+\subsection{A first try at forecasting}
+\label{subsec:firstforecast}
+
+We start with the time series in Figure~\ref{fig:lintrend4}\sidenote{the black time series from Figure~\ref{fig:lintrend2}}.
 
 <<label=lintrend4, fig=TRUE, include=FALSE, echo=FALSE>>=
 ggplot(data = lintrend2) +
@@ -874,17 +878,17 @@ ggplot(data = lintrend2) +
 \setfloatalignment{b}
 \end{marginfigure}
 
-With some goodwill we could detect a linear trend, which means that the underlying recursive formula associated with this time series could be of the form
+With some goodwill we can detect a linear trend, which means that the underlying recursive formula associated with this time series could be of the form
 \begin{equation}
 	y_{t} = y_{t-1} + b_{1} \quad t=1 \ldots n
 \end{equation}
 
-We calculate a new time series $z_{t}$ given by:
+We calculate the once-differenced time series $z_{t}$:
 \begin{equation}
 	z_{t} = y_{t} - y_{t-1} \quad t=2 \ldots n
 \end{equation}
 
-This is called a \emph{once-differenced}\index{differenced time series}\index{differencing} time series. The values of $z_{t}$ are:
+The values of $z_{t}$ are:
 \begin{equation}
 	\begin{split}
 	  z_{1} &= NA  \\
@@ -932,16 +936,16 @@ grid.arrange(p1, p2, nrow=1)
 \end{center}
 \end{figure}
 
-This looks pretty random, and the autocorrelation graph indicates that there is probably no autocorrelation. The mean of the differenced time series is \Sexpr{round(mudiv,3)} and the standard deviation is \Sexpr{round(sddiv,3)}. 
-\newpage
+If $z_{t}$ is a stationary time series,we expect its values to be randomly distributed around a constant level $b_{1}$, and Figure\ref{fig:lintrend5}-left confirms this. We can also check the autocorrelation graph (Figure\ref{fig:lintrend5}-right) and we see that there is probably no autocorrelation. From the once-differenced time series $z_{t}$ we can calculate the mean ($\mu=b_{1}=$\Sexpr{round(mudiv,3)}) and the standard deviation ($\sigma=$\Sexpr{round(sddiv,3)}). 
+
 Our first tentative forecast (Figure~\ref{fig:lintrend6}) for the next k\sidenote{here k=5} time points goes as follows:
 \begin{itemize}
-  \item the trendline (red and dashed) is given by $y_{i} = y_{i-1}$ + \Sexpr{round(mudiv,3)}  for i=1, $\ldots$ , n
+  \item the trendline (red and dashed) is given by $y_{i} = y_{i-1} + b_{1} = y_{i-1}$ + \Sexpr{round(mudiv,3)}  for i=1, $\ldots$ , n
   \item the starting point of the trendline is the ''intercept" of the linear regression through the time series data
-	\item the forecasted values are given by $y_{i} = y_{i-1}$ + \Sexpr{round(mudiv,3)}  for i=(n+1), $\ldots$ , (n+k)
+	\item the forecasted values are given by $y_{i} = y_{i-1} + b_{1} = y_{i-1}$ + \Sexpr{round(mudiv,3)}  for i=(n+1), $\ldots$ , (n+k)
 	\item the starting point of the forecast $y_{n+1}$ is equal to the last point of the trendline + \Sexpr{round(mudiv,3)}
-	\item the 95\% upper confidence level is given by $y_{i}$ + 1.96*$\sqrt{i-n}$*\Sexpr{round(sddiv,3)}  for i=(n+1), $\ldots$ , (n+k)
-	\item the 95\% lower confidence level is given by $y_{i}$ + 1.96*$\sqrt{i-n}$*\Sexpr{round(sddiv,3)}  for i=(n+1), $\ldots$ , (n+k)
+	\item the 95\% upper confidence level is given by $y_{i}$ + 1.96$\sqrt{(i-n)}\sigma$ = $y_{i}$ + 1.96$\sqrt{i-n}$\Sexpr{round(sddiv,3)}  for i=(n+1), $\ldots$ , (n+k)
+	\item the 95\% lower confidence level is given by $y_{i}$ - 1.96$\sqrt{(i-n)}\sigma$ =$y_{i}$ - 1.96$\sqrt{i-n}$\Sexpr{round(sddiv,3)}  for i=(n+1), $\ldots$ , (n+k)
 \end{itemize}
 
 <<label=lintrend6, fig=TRUE, include=FALSE, echo=FALSE>>=
@@ -987,11 +991,92 @@ It is clear that this was an easy example: we started from a self-constructed ti
 \medskip
 So we could ask: is there a better way to find the trend?
 
-In our example we also decided that there was no autocorrelation remaining in the residuals, while there was some sign of autocorrelation at lag1 and lag2. A second question is: can we build out trend model in such a way that it further reduces serial correlation within the residuals?
+In our example we also decided that there was no autocorrelation remaining in the residuals, while there was some sign of autocorrelation at lag1 and lag2. A second question is: can we build a trend model that further reduces serial correlation within the residuals?
 
-\subsection{Finding the trend by smoothing}
+\subsection{Finding the trend from the data}
+
+The basis of our forecast in \ref{subsec:firstforecast} was that we started from the assumption that our time series had a linear trend, given by:
+\begin{equation}
+	y_{t} = y_{t-1} + b_{1} + \epsilon_{t}(0,\sigma)
+\label{eq:lin1}
+\end{equation}
+
+From that assumption it followed that the once-differenced time series $z_{t}$ was stationary, and that the mean of $z_{t}$ was equal to $b_{1}$ and the standard deviation of $z_{t}$ was equal to $\sigma$. This gave us all the information we needed to construct the trend line ($y_{t}=y_{t-1} + b_{1}$), the forecasted values, and the confidence interval for these forecasts.
+
+We can rewrite recursion formula (\ref{eq:lin1}) as
+\begin{equation}
+	y_{t-1} = y_{t-2} + b_{1} + \epsilon_{t-1}(0,\sigma)
+\end{equation}
+
+From this we find $b_{1}$\sidenote{nor error because $b_{1}$ is a constant} as
+\begin{equation}
+	b_{1} = y_{t-1} - y_{t-2}
+\end{equation}
+
+and thus
+\begin{equation}
+	y_{t} = 2y_{t-1} - y_{t-2} + \epsilon_{t}(0,\sigma)
+\end{equation}
+
+Instead of imposing this linear relation upon our data, we could start from the general expression
+\begin{equation}
+	y_{t} = \alpha_{1}y_{t-1} + \alpha_{2}y_{t-2} + \epsilon_{t}(0,\sigma)
+\label{eq:autoregression2}
+\end{equation}
+
+and determine the best values for $\alpha_{1}$ and $\alpha_{2}$ from our data. We can go even further and generalise this to:
+\begin{equation}
+	y_{t} = \alpha_{1}y_{t-1} + \alpha_{2}y_{t-2} + \ldots + \alpha_{p}y_{t-p} + \epsilon_{t}(0,\sigma)
+\label{eq:autoregressionp}
+\end{equation}
+
+This is called an \emph{autoregressive model of order p}\index{autoregressive model}\index{autoregression!autoregressive model}\index{AR-model}\index{autoregression!AR-model}. 
+
+We can find the coefficients $\alpha_{i}$ of AR2-model (\ref{eq:autoregression2}) by linear regression of $y_{t}$ with $y_{t-1}$ and $y_{t-2}$
+<<>>=
+mod2 <- lm(ynoiserec[3:n] ~ 0 + ynoiserec[2:(n-1)] + ynoiserec[1:(n-2)], data = lintrend2)
+tidy(mod2)
+@
+
+<<label=lintrend7, fig=TRUE, include=FALSE, echo=FALSE>>=
+lintrend2$ytrendar2[1:2] <- NA
+lintrend2$ytrendar2[3:n] <- mod2$fitted.values
+ggplot() +
+        geom_point(data = lintrend2, aes(x = t, y = ynoiserec), size = 3, col = "black", shape = 3) +
+        geom_line(data = lintrend2, aes(x = t, y = ytrendar2), size = 0.5, col = "red", linetype = "dashed") +
+        scale_x_continuous(limits=c(0, (n+k)), breaks = seq(0,(n+k),5)) +
+        scale_y_continuous(limits=c(0, 25), breaks = seq(0,25,1)) +
+        labs(title = "AR2-model of time series", x = "t", y = "result") +
+        JT.theme
+lintrend2$residar2 <- lintrend2$ynoiserec - lintrend2$ytrendar2
+acf(lintrend2$residar2[3:n], lag.max = 10)
+@
+
+\begin{figure}
+\includegraphics[width=1\textwidth]{PTS-lintrend7}
+\caption{AR2-model of time series}
+\label{fig:lintrend7}
+\setfloatalignment{b}
+\end{figure}
+\medskip
 
 
+As with every statistical model, we should not overdo the number of terms. Increasing the number of terms makes a model more and more liable to \emph{overfitting}\index{overfitting}. To judge which value of $p$ gives us the optimum model, we
+
+We use the \url{csiro_alt_gmsl_mo_2015} data set.\sidenote{Global Average Absolute Sea Level Change, 1880-2014 from the US Environmental Protection Agency using data from CSIRO, 2015; NOAA, 2015.This data contains “cumulative changes in sea level for the world’s oceans since 1880, based on a combination of long-term tide gauge measurements and recent satellite measurements. It shows average absolute sea level change, which refers to the height of the ocean surface, regardless of whether nearby land is rising or falling. Satellite data are based solely on measured sea level, while the long-term tide gauge data include a small correction factor because the size and shape of the oceans are changing slowly over time. (On average, the ocean floor has been gradually sinking since the last Ice Age peak, 20,000 years ago.) Name: CSIRO (Commonwealth Scientific and Industrial Research Organization) }
+
+<<>>=
+sea <- read_csv("Data/csiro_alt_gmsl_mo_2015_csv.csv")
+sea$diff1 <- 0
+sea$diff1[1] <- NA
+sea$diff1[2:nrow(sea)] <- diff(sea$GMSL)
+sea %>% dplyr::filter(year(Time) > 2002 & year(Time) < 2008) -> sea_short
+sea_short$t <- seq(1, nrow(sea_short), 1)
+ggplot(data = sea_short) +
+  geom_point(aes(x = t, y = GMSL))
+ggplot(data = sea_short) +
+  geom_point(aes(x = t, y = diff1))
+@
 
 \subsection{The random walk}\index{random walk}\index{dependency!random walk}
 
@@ -1007,11 +1092,11 @@ Of course we will have to define the starting point $y_{0}$ and the type of the 
 
 <<label=randomwalk1, fig=TRUE, include=FALSE, echo=FALSE>>=
 set.seed(2019)
-n <- 3
+nrw <- 3
 N <- 100
-walk <- data.frame(t = rep(seq(1, N), n), serie = rep(c(1:n), each = N), y = 0)
+walk <- data.frame(t = rep(seq(1, N), nrw), serie = rep(c(1:nrw), each = N), y = 0)
 alpha <- 0.95
-for (j in seq(1,n)) {
+for (j in seq(1,nrw)) {
   for (i in seq(2, N)) {
     walk$y[(j-1)*N + i] <- alpha*walk$y[(j-1)*N + i - 1] + rnorm(1, 0, 1)
   }
