@@ -1008,14 +1008,14 @@ We can rewrite recursion formula (\ref{eq:lin1}) as
 	y_{t-1} = y_{t-2} + b_{1} + \epsilon_{t-1}(0,\sigma)
 \end{equation}
 
-From this we find $b_{1}$\sidenote{nor error because $b_{1}$ is a constant} as
+From this we find $b_{1}$ as
 \begin{equation}
-	b_{1} = y_{t-1} - y_{t-2}
+	b_{1} = y_{t-1} - y_{t-2} - \epsilon_{t-1}(0,\sigma)
 \end{equation}
 
 and thus
 \begin{equation}
-	y_{t} = 2y_{t-1} - y_{t-2} + \epsilon_{t}(0,\sigma)
+	y_{t} = 2y_{t-1} - y_{t-2} = 2y_{t-1} - y_{t-2} - \epsilon_{t-1}(0,\sigma) + \epsilon_{t}(0,\sigma) + \epsilon_{t}(0,\sigma) = 2y_{t-1} - y_{t-2} + \epsilon_{t}(0,\sqrt{2}\sigma)
 \end{equation}
 
 Instead of imposing this linear relation upon our data, we could start from the general expression
@@ -1024,44 +1024,60 @@ Instead of imposing this linear relation upon our data, we could start from the 
 \label{eq:autoregression2}
 \end{equation}
 
-and determine the best values for $\alpha_{1}$ and $\alpha_{2}$ from our data. We can go even further and generalise this to:
-\begin{equation}
-	y_{t} = \alpha_{1}y_{t-1} + \alpha_{2}y_{t-2} + \ldots + \alpha_{p}y_{t-p} + \epsilon_{t}(0,\sigma)
-\label{eq:autoregressionp}
-\end{equation}
+and determine the best values for $\alpha_{1}$ and $\alpha_{2}$ from our data. This is called an \emph{autoregressive model of order 2} (\emph{AR2-model})\index{autoregressive model}\index{autoregression!autoregressive model}\index{AR-model}\index{autoregression!AR-model}. We can find the coefficients $\alpha_{i}$ of AR2-model (\ref{eq:autoregression2}) by linear regression of $y_{t}$ with $y_{t-1}$ and $y_{t-2}$
 
-This is called an \emph{autoregressive model of order p}\index{autoregressive model}\index{autoregression!autoregressive model}\index{AR-model}\index{autoregression!AR-model}. 
-
-We can find the coefficients $\alpha_{i}$ of AR2-model (\ref{eq:autoregression2}) by linear regression of $y_{t}$ with $y_{t-1}$ and $y_{t-2}$
-<<>>=
-mod2 <- lm(ynoiserec[3:n] ~ 0 + ynoiserec[2:(n-1)] + ynoiserec[1:(n-2)], data = lintrend2)
-tidy(mod2)
-@
-
-<<label=lintrend7, fig=TRUE, include=FALSE, echo=FALSE>>=
+<<label=modar2, fig=TRUE, include=FALSE, echo=FALSE>>=
+mod.ar2 <- lm(lintrend2$ynoiserec[3:n] ~ 0 + lintrend2$ynoiserec[2:(n-1)] + lintrend2$ynoiserec[1:(n-2)])
+a1 <- tidy(mod.ar2)$estimate[1]
+a2 <- tidy(mod.ar2)$estimate[2]
 lintrend2$ytrendar2[1:2] <- NA
-lintrend2$ytrendar2[3:n] <- mod2$fitted.values
-ggplot() +
-        geom_point(data = lintrend2, aes(x = t, y = ynoiserec), size = 3, col = "black", shape = 3) +
-        geom_line(data = lintrend2, aes(x = t, y = ytrendar2), size = 0.5, col = "red", linetype = "dashed") +
+lintrend2$ytrendar2[3:n] <- mod.ar2$fitted.values
+p1 <- ggplot() +
+        geom_point(data = lintrend2, aes(x = t, y = ynoiserec), 
+                   size = 3, col = "black", shape = 3) +
+        geom_line(data = lintrend2, aes(x = t, y = ytrendar2), 
+                  size = 0.5, col = "red", linetype = "dashed") +
         scale_x_continuous(limits=c(0, (n+k)), breaks = seq(0,(n+k),5)) +
         scale_y_continuous(limits=c(0, 25), breaks = seq(0,25,1)) +
         labs(title = "AR2-model of time series", x = "t", y = "result") +
         JT.theme
 lintrend2$residar2 <- lintrend2$ynoiserec - lintrend2$ytrendar2
-acf(lintrend2$residar2[3:n], lag.max = 10)
+autoar2 <- data.frame(lag = acf(lintrend2$residar2[3:n], lag.max=10, plot = FALSE)$lag, 
+                   acf = acf(lintrend2$residar2[3:n], lag.max=10, plot = FALSE)$acf)
+ci.high <- qnorm(0.975)/sqrt(n)
+ci.low <- - ci.high
+p2 <- ggplot(data = autoar2, aes(x = lag, y = acf)) +
+        geom_segment(aes(xend = lag, yend = 0), alpha = 0.4, size = 2) +
+        geom_hline(yintercept = 0) +
+        geom_hline(yintercept = ci.high, linetype = "dashed", col = "blue") +
+        geom_hline(yintercept = ci.low, linetype = "dashed", col = "blue") +
+        scale_x_continuous(limits=c(0, 10), breaks = seq(0,10,1)) +
+        scale_y_continuous(limits=c(-1, 1), breaks = seq(-1,1,0.1)) +
+        labs(title = "Autocorrelation\nresiduals AR2-model", x = "lag", y = "result") +
+        JT.theme
+grid.arrange(p1, p2, nrow = 1)
 @
 
 \begin{figure}
-\includegraphics[width=1\textwidth]{PTS-lintrend7}
+\includegraphics[width=1\textwidth]{PTS-modar2}
 \caption{AR2-model of time series}
-\label{fig:lintrend7}
+\label{fig:modar2}
 \setfloatalignment{b}
 \end{figure}
 \medskip
 
+We can go further and generalise this to an \emph{autoregression model of order p}:
+\begin{equation}
+	y_{t} = \alpha_{1}y_{t-1} + \alpha_{2}y_{t-2} + \ldots + \alpha_{p}y_{t-p} + \epsilon_{t}(0,\sigma)
+\label{eq:autoregressionp}
+\end{equation}
 
-As with every statistical model, we should not overdo the number of terms. Increasing the number of terms makes a model more and more liable to \emph{overfitting}\index{overfitting}. To judge which value of $p$ gives us the optimum model, we
+As with every statistical model, we should not overdo the number of terms. Increasing the number of terms makes a model more and more liable to \emph{overfitting}\index{overfitting}. To judge which value of $p$ gives us the optimal model, we use a criterium that judges the how well our model fits the data (e.g. by calculating the Likelihood function \emph{L}\sidenote{we will not go into the details of the Likelihood function here}), but punishes the use of too many terms in the model. The \emph{Akaike Information Criterion}\index{Akaike Information Criterion}\index{AIC}\index{likelihood function} does this, and we aim for a \emph{low AIC}:
+\begin{equation}
+	AIC = -2log(L) + 2p
+\end{equation}
+
+The autoregressive models usually do not produce a stationary time series. However: that is not important because we use these models to simulate real time series, and real time series are mostly non-stationary. What we are aiming for is that the residuals (difference between the actual times series and the model) for a stationary time series.
 
 We use the \url{csiro_alt_gmsl_mo_2015} data set.\sidenote{Global Average Absolute Sea Level Change, 1880-2014 from the US Environmental Protection Agency using data from CSIRO, 2015; NOAA, 2015.This data contains “cumulative changes in sea level for the world’s oceans since 1880, based on a combination of long-term tide gauge measurements and recent satellite measurements. It shows average absolute sea level change, which refers to the height of the ocean surface, regardless of whether nearby land is rising or falling. Satellite data are based solely on measured sea level, while the long-term tide gauge data include a small correction factor because the size and shape of the oceans are changing slowly over time. (On average, the ocean floor has been gradually sinking since the last Ice Age peak, 20,000 years ago.) Name: CSIRO (Commonwealth Scientific and Industrial Research Organization) }
 
