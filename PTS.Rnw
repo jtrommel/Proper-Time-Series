@@ -1032,13 +1032,28 @@ a1 <- tidy(mod.ar2)$estimate[1]
 a2 <- tidy(mod.ar2)$estimate[2]
 lintrend2$ytrendar2[1:2] <- NA
 lintrend2$ytrendar2[3:n] <- mod.ar2$fitted.values
+k <- 5
+lintrend2.forecast.ar2 <- data.frame(i = seq(1, k, 1), t = 0, y = 0, ylow = 0, yhigh = 0)
+lintrend2.forecast.ar2$t <- lintrend2.forecast.ar2$i + n
+lintrend2.forecast.ar2$y[1] <- a1*lintrend2$ynoiserec[n] + a2*lintrend2$ynoiserec[n-1]
+lintrend2.forecast.ar2$y[2] <- a1*lintrend2.forecast.ar2$y[1] + a2*lintrend2$ynoiserec[n]
+for (i in seq(3, k, 1)) {
+  lintrend2.forecast.ar2$y[i] <- a1*lintrend2.forecast.ar2$y[i-1] + 
+    a2*lintrend2.forecast.ar2$y[i-2]
+}
+for (i in seq(1, k, 1)) {
+  lintrend2.forecast.ar2$ylow[i] <- lintrend2.forecast.ar2$y[i] - 1.96*sqrt(i)*sddiv
+  lintrend2.forecast.ar2$yhigh[i] <- lintrend2.forecast.ar2$y[i] + 1.96*sqrt(i)*sddiv
+}
 p1 <- ggplot() +
         geom_point(data = lintrend2, aes(x = t, y = ynoiserec), 
                    size = 3, col = "black", shape = 3) +
         geom_line(data = lintrend2, aes(x = t, y = ytrendar2), 
                   size = 0.5, col = "red", linetype = "dashed") +
+        geom_line(data = lintrend2.forecast.ar2, aes(x = t, y = y), size = 1, col = "blue") +
+        geom_ribbon(data = lintrend2.forecast.ar2, aes(x = t, ymin = ylow, ymax = yhigh), fill = "red", alpha = 0.3) +
         scale_x_continuous(limits=c(0, (n+k)), breaks = seq(0,(n+k),5)) +
-        scale_y_continuous(limits=c(0, 25), breaks = seq(0,25,1)) +
+        scale_y_continuous(limits=c(0, 27), breaks = seq(0,27,1)) +
         labs(title = "AR2-model of time series", x = "t", y = "result") +
         JT.theme
 lintrend2$residar2 <- lintrend2$ynoiserec - lintrend2$ytrendar2
