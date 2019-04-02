@@ -1015,7 +1015,10 @@ From this we find $b_{1}$ as
 
 and thus
 \begin{equation}
-	y_{t} = 2y_{t-1} - y_{t-2} = 2y_{t-1} - y_{t-2} - \epsilon_{t-1}(0,\sigma) + \epsilon_{t}(0,\sigma) + \epsilon_{t}(0,\sigma) = 2y_{t-1} - y_{t-2} + \epsilon_{t}(0,\sqrt{2}\sigma)
+\begin{split}
+	y_{t} &= 2y_{t-1} - y_{t-2} = 2y_{t-1} - y_{t-2} - \epsilon_{t-1}(0,\sigma) + \epsilon_{t}(0,\sigma) + \epsilon_{t}(0,\sigma) \\
+	&= 2y_{t-1} - y_{t-2} + \epsilon_{t}(0,\sqrt{2}\sigma)
+	\end{split}
 \end{equation}
 
 Instead of imposing this linear relation upon our data, we could start from the general expression
@@ -1024,14 +1027,42 @@ Instead of imposing this linear relation upon our data, we could start from the 
 \label{eq:autoregression2}
 \end{equation}
 
-and determine the best values for $\alpha_{1}$ and $\alpha_{2}$ from our data. This is called an \emph{autoregressive model of order 2} (\emph{AR2-model})\index{autoregressive model}\index{autoregression!autoregressive model}\index{AR-model}\index{autoregression!AR-model}. We can find the coefficients $\alpha_{i}$ of AR2-model (\ref{eq:autoregression2}) by linear regression of $y_{t}$ with $y_{t-1}$ and $y_{t-2}$
+and determine the best values for $\alpha_{1}$ and $\alpha_{2}$ from our data. This is called an \emph{autoregressive model of order 2} (\emph{AR2-model})\index{autoregressive model}\index{autoregression!autoregressive model}\index{AR-model}\index{autoregression!AR-model}. 
+\newpage
+We can find the coefficients $\alpha_{i}$ of AR2-model (\ref{eq:autoregression2}) by linear regression of $y_{t}$ with $y_{t-1}$ and $y_{t-2}$\sidenote{detail: put a ''0" as first term of the linear regression to make sure that the regression equation does not produce a constant term}
+
+<<>>=
+mod.ar2 <- lm(lintrend2$ynoiserec[3:n] ~ 
+                0 + 
+                lintrend2$ynoiserec[2:(n-1)] + 
+                lintrend2$ynoiserec[1:(n-2)])
+@
+\bigskip
+<<>>=
+tidy(mod.ar2)
+@
+\bigskip
+<<>>=
+glance(mod.ar2)
+@
+\bigskip
 
 <<label=modar2, fig=TRUE, include=FALSE, echo=FALSE>>=
-mod.ar2 <- lm(lintrend2$ynoiserec[3:n] ~ 0 + lintrend2$ynoiserec[2:(n-1)] + lintrend2$ynoiserec[1:(n-2)])
+# calculate the trendline
 a1 <- tidy(mod.ar2)$estimate[1]
 a2 <- tidy(mod.ar2)$estimate[2]
 lintrend2$ytrendar2[1:2] <- NA
 lintrend2$ytrendar2[3:n] <- mod.ar2$fitted.values
+# calculate residuals
+lintrend2$residar2 <- lintrend2$ynoiserec - lintrend2$ytrendar2
+# find the autocorrelation within the residuals
+autoar2 <- data.frame(lag = acf(lintrend2$residar2[3:n], lag.max=10, plot = FALSE)$lag, 
+                   acf = acf(lintrend2$residar2[3:n], lag.max=10, plot = FALSE)$acf)
+ci.high <- qnorm(0.975)/sqrt(n)
+ci.low <- - ci.high
+# calculate the standard deviation of the residuals
+sdres <- sd(lintrend2$residar[3:n])
+# calculate the forecasted values (k=5)
 k <- 5
 lintrend2.forecast.ar2 <- data.frame(i = seq(1, k, 1), t = 0, y = 0, ylow = 0, yhigh = 0)
 lintrend2.forecast.ar2$t <- lintrend2.forecast.ar2$i + n
@@ -1042,8 +1073,8 @@ for (i in seq(3, k, 1)) {
     a2*lintrend2.forecast.ar2$y[i-2]
 }
 for (i in seq(1, k, 1)) {
-  lintrend2.forecast.ar2$ylow[i] <- lintrend2.forecast.ar2$y[i] - 1.96*sqrt(i)*sddiv
-  lintrend2.forecast.ar2$yhigh[i] <- lintrend2.forecast.ar2$y[i] + 1.96*sqrt(i)*sddiv
+  lintrend2.forecast.ar2$ylow[i] <- lintrend2.forecast.ar2$y[i] - 1.96*sqrt(i)*sdres
+  lintrend2.forecast.ar2$yhigh[i] <- lintrend2.forecast.ar2$y[i] + 1.96*sqrt(i)*sdres
 }
 p1 <- ggplot() +
         geom_point(data = lintrend2, aes(x = t, y = ynoiserec), 
@@ -1056,11 +1087,6 @@ p1 <- ggplot() +
         scale_y_continuous(limits=c(0, 27), breaks = seq(0,27,1)) +
         labs(title = "AR2-model of time series", x = "t", y = "result") +
         JT.theme
-lintrend2$residar2 <- lintrend2$ynoiserec - lintrend2$ytrendar2
-autoar2 <- data.frame(lag = acf(lintrend2$residar2[3:n], lag.max=10, plot = FALSE)$lag, 
-                   acf = acf(lintrend2$residar2[3:n], lag.max=10, plot = FALSE)$acf)
-ci.high <- qnorm(0.975)/sqrt(n)
-ci.low <- - ci.high
 p2 <- ggplot(data = autoar2, aes(x = lag, y = acf)) +
         geom_segment(aes(xend = lag, yend = 0), alpha = 0.4, size = 2) +
         geom_hline(yintercept = 0) +
@@ -1081,33 +1107,77 @@ grid.arrange(p1, p2, nrow = 1)
 \end{figure}
 \medskip
 
+We can see that there is autocorrelation of $y_{t}$ with $y_{t-1}$ and $y_{t-2}$ because all p-values are well below the 5\% treshold. We can now construct the trend line based on this \emph{AR2-model}, we can forecast into the future and determine a 95\%-confidence interval for these forecasts (Figure~\ref{fig:modar2}-left). 
+
+Autoregressive models usually do not produce a stationary time series. Howeve,: that is not important because we use these models to simulate real time series, and real time series are mostly non-stationary. What we are aiming for is that the residuals (difference between the actual times series and the model) form a stationary time series and this we have achieved with the AR-2 model (Figure~\ref{fig:modar2}-right). Only the autocorrelation for lag0 remains; all others are now well within the confidence interval and play no role.
+
+\subsection{Higher order autoregression models}
+
 We can go further and generalise this to an \emph{autoregression model of order p}:
 \begin{equation}
 	y_{t} = \alpha_{1}y_{t-1} + \alpha_{2}y_{t-2} + \ldots + \alpha_{p}y_{t-p} + \epsilon_{t}(0,\sigma)
 \label{eq:autoregressionp}
 \end{equation}
 
-As with every statistical model, we should not overdo the number of terms. Increasing the number of terms makes a model more and more liable to \emph{overfitting}\index{overfitting}. To judge which value of $p$ gives us the optimal model, we use a criterium that judges the how well our model fits the data (e.g. by calculating the Likelihood function \emph{L}\sidenote{we will not go into the details of the Likelihood function here}), but punishes the use of too many terms in the model. The \emph{Akaike Information Criterion}\index{Akaike Information Criterion}\index{AIC}\index{likelihood function} does this, and we aim for a \emph{low AIC}:
+The following tables give the results of the autoregression models of order 3 (AR3) and 4 (AR4):
+<<echo=FALSE>>=
+mod.ar3 <- lm(lintrend2$ynoiserec[4:n] ~ 
+                0 + 
+                lintrend2$ynoiserec[3 : (n-1)] + 
+                lintrend2$ynoiserec[2 : (n-2)] +
+                lintrend2$ynoiserec[1 : (n-3)])
+mod.ar4 <- lm(lintrend2$ynoiserec[5:n] ~ 
+                0 + 
+                lintrend2$ynoiserec[4 : (n-1)] + 
+                lintrend2$ynoiserec[3 : (n-2)] +
+                lintrend2$ynoiserec[2 : (n-3)] +
+                lintrend2$ynoiserec[1 : (n-4)])
+@
+\bigskip
+<<>>=
+tidy(mod.ar3)
+@
+\bigskip
+<<>>=
+tidy(mod.ar4)
+@
+\bigskip
+
+Increasing the order of the autocorrelation model does not give better results: we can see that in the AR-3 model, the p-value for the third component is much above the treshold (5\%) for the p-value. The same is true int the AR-4 model for the third and fourth component. It seems that the AR-2 model is the right one.
+
+As with every statistical model, we should not overdo the number of terms. Increasing the number of terms makes a model more and more liable to \emph{overfitting}\index{overfitting}. To judge which value of $p$ gives us the optimal model, we should use a criterium that judges how well our model fits the data (e.g. by calculating the Likelihood function \emph{L}\sidenote{we will not go into the details of the Likelihood function here}), but punishes the use of too many terms in the model. The \emph{Akaike Information Criterion}\index{Akaike Information Criterion}\index{AIC}\index{likelihood function} does this, and we aim for a \emph{low AIC}:
 \begin{equation}
 	AIC = -2log(L) + 2p
 \end{equation}
 
-The autoregressive models usually do not produce a stationary time series. However: that is not important because we use these models to simulate real time series, and real time series are mostly non-stationary. What we are aiming for is that the residuals (difference between the actual times series and the model) for a stationary time series.
+The \textbf{\textsf{R}} programming language has the function \textit{ar} that gives the optimal number of autoregression terms and their $\alpha$-coefficients for a given time series. You have to make a judgment about the optimisation criterion that the function should use. Different choices will give different results, and the complexities of chosing the right one is outside the scope of this article. For the moment, we stick to making linear regressions for different values of the order $p$ and judging whether increasing the order gives extra terms which are statistically relevant based on the p-value. In this example this means that we stick to the AR-2 model.
 
-We use the \url{csiro_alt_gmsl_mo_2015} data set.\sidenote{Global Average Absolute Sea Level Change, 1880-2014 from the US Environmental Protection Agency using data from CSIRO, 2015; NOAA, 2015.This data contains “cumulative changes in sea level for the world’s oceans since 1880, based on a combination of long-term tide gauge measurements and recent satellite measurements. It shows average absolute sea level change, which refers to the height of the ocean surface, regardless of whether nearby land is rising or falling. Satellite data are based solely on measured sea level, while the long-term tide gauge data include a small correction factor because the size and shape of the oceans are changing slowly over time. (On average, the ocean floor has been gradually sinking since the last Ice Age peak, 20,000 years ago.) Name: CSIRO (Commonwealth Scientific and Industrial Research Organization) }
+\newthought{Real life example}
+We use the \url{csiro_alt_gmsl_mo_2015} data set.\sidenote[][-6cm]{Global Average Absolute Sea Level Change, 1880-2014 from the US Environmental Protection Agency using data from CSIRO, 2015; NOAA, 2015.This data contains “cumulative changes in sea level for the world’s oceans from Januari 1993 up to Februari 2015, based on a combination of long-term tide gauge measurements and recent satellite measurements. It shows average absolute sea level change, which refers to the height of the ocean surface, regardless of whether nearby land is rising or falling. Satellite data are based solely on measured sea level, while the long-term tide gauge data include a small correction factor because the size and shape of the oceans are changing slowly over time. (On average, the ocean floor has been gradually sinking since the last Ice Age peak, 20,000 years ago.) Name: CSIRO (Commonwealth Scientific and Industrial Research Organization)}. Let us take the data for the years 2003 to 2007 (both included), and use our methodology to make a forecast for the year 2008.
 
-<<>>=
+<<label=sea1, fig=TRUE, include=FALSE, echo=FALSE>>=
 sea <- read_csv("Data/csiro_alt_gmsl_mo_2015_csv.csv")
-sea$diff1 <- 0
-sea$diff1[1] <- NA
-sea$diff1[2:nrow(sea)] <- diff(sea$GMSL)
-sea %>% dplyr::filter(year(Time) > 2002 & year(Time) < 2008) -> sea_short
-sea_short$t <- seq(1, nrow(sea_short), 1)
-ggplot(data = sea_short) +
-  geom_point(aes(x = t, y = GMSL))
-ggplot(data = sea_short) +
-  geom_point(aes(x = t, y = diff1))
+sea %>% dplyr::filter(year(Time) > 2002 & year(Time) < 2008) -> sea_train
+ntrain <- nrow(sea_train)
+sea %>% dplyr::filter(year(Time) == 2008) -> sea_valid
+nvalid <- nrow(sea_valid)
+sea_train$t <- seq(1, ntrain, 1)
+sea_valid$t <- seq((ntrain +1), (ntrain + nvalid), 1)
+ggplot() +
+  geom_point(data = sea_train, aes(x = t, y = GMSL), size = 3, col = "black", shape = 3) +
+  scale_x_continuous(limits=c(0, (ntrain + nvalid)), breaks = seq(0,(ntrain + nvalid),5)) +
+  scale_y_continuous(limits=c(30, 60), breaks = seq(30, 60, 2)) +
+  labs(title = "Sea level time series\n(2003-2007)", x = "t", y = "GMSL") +
+  JT.theme
 @
+
+\begin{marginfigure}
+\includegraphics[width=1\textwidth]{PTS-sea1}
+\caption{Sea level time series (2003-2007)}
+\label{fig:sea1}
+\setfloatalignment{b}
+\end{marginfigure}
+\medskip
 
 \subsection{The random walk}\index{random walk}\index{dependency!random walk}
 
