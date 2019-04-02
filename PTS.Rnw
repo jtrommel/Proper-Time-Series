@@ -1153,7 +1153,7 @@ As with every statistical model, we should not overdo the number of terms. Incre
 The \textbf{\textsf{R}} programming language has the function \textit{ar} that gives the optimal number of autoregression terms and their $\alpha$-coefficients for a given time series. You have to make a judgment about the optimisation criterion that the function should use. Different choices will give different results, and the complexities of chosing the right one is outside the scope of this article. For the moment, we stick to making linear regressions for different values of the order $p$ and judging whether increasing the order gives extra terms which are statistically relevant based on the p-value. In this example this means that we stick to the AR-2 model.
 
 \newthought{Real life example}
-We use the \url{csiro_alt_gmsl_mo_2015} data set.\sidenote[][-6cm]{Global Average Absolute Sea Level Change, 1880-2014 from the US Environmental Protection Agency using data from CSIRO, 2015; NOAA, 2015.This data contains “cumulative changes in sea level for the world’s oceans from Januari 1993 up to Februari 2015, based on a combination of long-term tide gauge measurements and recent satellite measurements. It shows average absolute sea level change, which refers to the height of the ocean surface, regardless of whether nearby land is rising or falling. Satellite data are based solely on measured sea level, while the long-term tide gauge data include a small correction factor because the size and shape of the oceans are changing slowly over time. (On average, the ocean floor has been gradually sinking since the last Ice Age peak, 20,000 years ago.) Name: CSIRO (Commonwealth Scientific and Industrial Research Organization)}. Let us take the data for the years 2003 to 2007 (both included), and use our methodology to make a forecast for the year 2008.
+We use the \url{csiro_alt_gmsl_mo_2015} data set.\sidenote[][-6cm]{Global Average Absolute Sea Level Change, 1880-2014 from the US Environmental Protection Agency using data from CSIRO, 2015; NOAA, 2015.This data contains “cumulative changes in sea level for the world’s oceans from Januari 1993 up to Februari 2015, based on a combination of long-term tide gauge measurements and recent satellite measurements. It shows average absolute sea level change, which refers to the height of the ocean surface, regardless of whether nearby land is rising or falling. Satellite data are based solely on measured sea level, while the long-term tide gauge data include a small correction factor because the size and shape of the oceans are changing slowly over time. (On average, the ocean floor has been gradually sinking since the last Ice Age peak, 20,000 years ago.) Name: CSIRO (Commonwealth Scientific and Industrial Research Organization)}. Let us take the data for the years 2003 to 2007 (both included) (Figure~\ref{fig:sea1}), and use our methodology to make a forecast for the year 2008.
 
 <<label=sea1, fig=TRUE, include=FALSE, echo=FALSE>>=
 sea <- read_csv("Data/csiro_alt_gmsl_mo_2015_csv.csv")
@@ -1171,12 +1171,100 @@ ggplot() +
   JT.theme
 @
 
-\begin{marginfigure}
+\begin{marginfigure}[0cm]
 \includegraphics[width=1\textwidth]{PTS-sea1}
 \caption{Sea level time series (2003-2007)}
 \label{fig:sea1}
 \setfloatalignment{b}
 \end{marginfigure}
+\medskip
+
+We construct a number of autoregression models of different order p, and we see that the AR-3 model has a non-significant regression on $y_{t-3}$:
+<<>>=
+sea.ar1 <- lm(GMSL[2:ntrain] ~ 0 + GMSL[1:(ntrain - 1)],
+              data = sea_train)
+tidy(sea.ar1)
+@
+\bigskip
+<<>>=
+sea.ar2 <- lm(GMSL[3:ntrain] ~ 0 + GMSL[2:(ntrain - 1)] +
+              GMSL[1:(ntrain - 2)],
+              data = sea_train)
+tidy(sea.ar2)
+@
+\bigskip
+<<>>=
+sea.ar3 <- lm(GMSL[4:ntrain] ~ 0 + GMSL[3:(ntrain - 1)] +
+              GMSL[2:(ntrain - 2)] +
+              GMSL[1:(ntrain - 3)],
+              data = sea_train)
+tidy(sea.ar3)
+@
+\bigskip
+
+So we choose the AR-2 model to construct the trendline, calculate the residuals and check the autocorrelations within the residuals (Figure~\ref{fig:seaar2})
+
+<<label=seaar2, fig=TRUE, include=FALSE, echo=FALSE>>=
+# calculate the trendline
+sea_train$trend <- rep(0, ntrain)
+a1 <- tidy(sea.ar2)$estimate[1]
+a2 <- tidy(sea.ar2)$estimate[2]
+sea_train$trend[1:2] <- NA
+sea_train$trend[3:ntrain] <- sea.ar2$fitted.values
+# calculate residuals
+sea_train$resid <- rep(0, ntrain)
+sea_train$resid <- sea_train$GMSL - sea_train$trend
+# find the autocorrelation within the residuals
+autosea <- data.frame(lag = acf(sea_train$resid[3:ntrain], lag.max=10, plot = FALSE)$lag, 
+                   acf = acf(sea_train$resid[3:n], lag.max=10, plot = FALSE)$acf)
+ci.high <- qnorm(0.975)/sqrt(ntrain)
+ci.low <- - ci.high
+# calculate the standard deviation of the residuals
+sdres <- sd(sea_train$resid[3:n])
+# calculate the forecasted values (k=5)
+sea_valid$forecast <- rep(0, nvalid)
+sea_valid$low <- rep(0, nvalid)
+sea_valid$high <- rep(0, nvalid)
+sea_valid$forecast[1] <- a1*sea_train$GMSL[ntrain] + a2*sea_train$GMSL[ntrain-1]
+sea_valid$forecast[2] <- a1*sea_valid$forecast[1] + a2*sea_train$GMSL[ntrain]
+for (i in seq(3, nvalid, 1)) {
+  sea_valid$forecast[i] <- a1*sea_valid$forecast[i-1] + a2*sea_valid$forecast[i-1]
+}
+for (i in seq(1, nvalid, 1)) {
+  sea_valid$low[i] <- sea_valid$forecast[i] - 1.96*sqrt(i)*sdres
+  sea_valid$high[i] <- sea_valid$forecast[i] + 1.96*sqrt(i)*sdres
+}
+p1 <- ggplot() +
+        geom_point(data = sea_train, aes(x = t, y = GMSL), 
+                   size = 3, col = "black", shape = 3) +
+        geom_point(data = sea_valid, aes(x = t, y = GMSL), 
+                   size = 2, col = "red", shape = 16) +
+        geom_line(data = sea_train, aes(x = t, y = trend), 
+                  size = 0.5, col = "red", linetype = "dashed") +
+        geom_line(data = sea_valid, aes(x = t, y = forecast), size = 1, col = "red") +
+        geom_ribbon(data = sea_valid, aes(x = t, ymin = low, ymax = high), fill = "blue", alpha = 0.3) +
+        scale_x_continuous(limits=c(0, (ntrain + nvalid)), breaks = seq(0,(ntrain + nvalid),5)) +
+        scale_y_continuous(limits=c(30, 60), breaks = seq(30,60,2)) +
+        labs(title = "Sea time series\nAR2-model, trend, forecast", x = "t", y = "GMSL") +
+        JT.theme
+p2 <- ggplot(data = autosea, aes(x = lag, y = acf)) +
+        geom_segment(aes(xend = lag, yend = 0), alpha = 0.4, size = 2) +
+        geom_hline(yintercept = 0) +
+        geom_hline(yintercept = ci.high, linetype = "dashed", col = "blue") +
+        geom_hline(yintercept = ci.low, linetype = "dashed", col = "blue") +
+        scale_x_continuous(limits=c(0, 10), breaks = seq(0,10,1)) +
+        scale_y_continuous(limits=c(-1, 1), breaks = seq(-1,1,0.1)) +
+        labs(title = "Sea time series\nAR2-model: autocorrelation of residuals", x = "lag", y = "result") +
+        JT.theme
+grid.arrange(p1, p2, nrow = 1)
+@
+
+\begin{figure}
+\includegraphics[width=1\textwidth]{PTS-seaar2}
+\caption{AR2-model of Sea time series}
+\label{fig:seaar2}
+\setfloatalignment{b}
+\end{figure}
 \medskip
 
 \subsection{The random walk}\index{random walk}\index{dependency!random walk}
