@@ -1199,20 +1199,20 @@ ggplot() +
 
 We construct a number of autoregression models of different order p, and we see that from the AR-3 model there is no significant regression on $y_{t-3}$:
 <<>>=
-sea.ar1 <- lm(GMSL[2:ntrain] ~ 0 + GMSL[1:(ntrain - 1)],
+sea.ar1 <- lm(GMSL[2:ntrain] ~  0 + GMSL[1:(ntrain - 1)],
               data = sea_train)
 tidy(sea.ar1)
 @
 \bigskip
 <<>>=
-sea.ar2 <- lm(GMSL[3:ntrain] ~ 0 + GMSL[2:(ntrain - 1)] +
+sea.ar2 <- lm(GMSL[3:ntrain] ~  0 + GMSL[2:(ntrain - 1)] +
               GMSL[1:(ntrain - 2)],
               data = sea_train)
 tidy(sea.ar2)
 @
 \bigskip
 <<>>=
-sea.ar3 <- lm(GMSL[4:ntrain] ~ 0 + GMSL[3:(ntrain - 1)] +
+sea.ar3 <- lm(GMSL[4:ntrain] ~  0 + GMSL[3:(ntrain - 1)] +
               GMSL[2:(ntrain - 2)] +
               GMSL[1:(ntrain - 3)],
               data = sea_train)
@@ -1262,8 +1262,8 @@ p1 <- ggplot() +
         geom_line(data = sea_valid, aes(x = t, y = forecast), size = 1, col = "red") +
         geom_ribbon(data = sea_valid, aes(x = t, ymin = low, ymax = high), fill = "blue", alpha = 0.3) +
         scale_x_continuous(limits=c(0, (ntrain + nvalid)), breaks = seq(0,(ntrain + nvalid),5)) +
-        scale_y_continuous(limits=c(30, 60), breaks = seq(30,60,2)) +
-        labs(title = "Sea time series\nAR2-model, trend, forecast", x = "t", y = "GMSL") +
+        scale_y_continuous(limits=c(25, 65), breaks = seq(25,65,2)) +
+        labs(title = "Sea time series AR2-model\ntrend, forecast", x = "t", y = "GMSL") +
         JT.theme
 p2 <- ggplot(data = autosea, aes(x = lag, y = acf)) +
         geom_segment(aes(xend = lag, yend = 0), alpha = 0.4, size = 2) +
@@ -1272,7 +1272,7 @@ p2 <- ggplot(data = autosea, aes(x = lag, y = acf)) +
         geom_hline(yintercept = ci.low, linetype = "dashed", col = "blue") +
         scale_x_continuous(limits=c(0, 10), breaks = seq(0,10,1)) +
         scale_y_continuous(limits=c(-1, 1), breaks = seq(-1,1,0.1)) +
-        labs(title = "Sea time series\nAR2-model: autocorrelation of residuals", x = "lag", y = "result") +
+        labs(title = "Sea time series AR2-model\nautocorrelation of residuals", x = "lag", y = "result") +
         JT.theme
 grid.arrange(p1, p2, nrow = 1)
 @
@@ -1290,40 +1290,28 @@ We can see that (almost) all of the actual values in the validation period lie w
 accuracy(sea_valid$forecast, sea_valid$GMSL)
 @
 
-Now we can use the \textit{ar}-function to find out the optimal model according to \textbf{\textsf{R}}\sidenote{we use the method of ''maximum likelihood estimation" (MLE)}:
+\newpage
+Now we can use the \textit{ar}-function to find the \emph{optimal} model according to \textbf{\textsf{R}}\sidenote{we use the method of ''maximum likelihood estimation" (MLE)}:
 <<>>=
 sea.opt <- ar(sea_train$GMSL, method='mle')
 sea.opt$order
 sea.opt$ar
+sea_valid$forecast.opt <- predict(sea.opt, n.ahead = nvalid)$pred
 @
 
 The order remains 2, but the coefficients are a little bit different. We can calculate the forecasted values for 2008 with this model, and the accuracy of this model compared with the actual values:
 
-<<echo=FALSE>>=
-a1.opt <- sea.opt$ar[1]
-a2.opt <- sea.opt$ar[2]
-sea_valid$forecast.opt <- rep(0, nvalid)
-sea_valid$forecast.opt[1] <- a1.opt*sea_train$GMSL[ntrain] +
-  a2.opt*sea_train$GMSL[ntrain-1]
-sea_valid$forecast.opt[2] <- a1.opt*sea_valid$forecast.opt[1] +
-  a2.opt*sea_train$GMSL[ntrain]
-for (i in seq(3, nvalid, 1)) {
-  sea_valid$forecast.opt[i] <- a1*sea_valid$forecast.opt[i-1] +
-    a2*sea_valid$forecast.opt[i-1]
-}
-@
 <<>>=
 accuracy(sea_valid$forecast.opt, sea_valid$GMSL)
 @
 
-We're not doing bad! Better than the optimal solution8
+We're not doing bad: our accuracy is better than the optimal solution for all metrics, and our forecasts for 2008 are better (Figure~\ref{fig:seaaropt})!
 
 <<label=seaaropt, fig=TRUE, include=FALSE, echo=FALSE>>=
 # calculate the trendline
 sea_train$trend.opt<- rep(0, ntrain)
 sea_train$trend.opt[1:2] <- NA
-for (i in seq(3, ntrain, 1)) {sea_train$trend.opt[i] <- a1.opt*sea_train$GMSL[i-1] +
-  a2.opt*sea_train$GMSL[i-2]}
+sea_train$trend.opt[3:ntrain] <- fitted(sea.ar2)
 # calculate residuals
 sea_train$resid.opt <- rep(0, ntrain)
 sea_train$resid.opt <- sea_train$GMSL - sea_train$trend.opt
@@ -1351,8 +1339,8 @@ p1 <- ggplot() +
         geom_line(data = sea_valid, aes(x = t, y = forecast.opt), size = 1, col = "red") +
         geom_ribbon(data = sea_valid, aes(x = t, ymin = low.opt, ymax = high.opt), fill = "blue", alpha = 0.3) +
         scale_x_continuous(limits=c(0, (ntrain + nvalid)), breaks = seq(0,(ntrain + nvalid),5)) +
-        scale_y_continuous(limits=c(30, 60), breaks = seq(30,60,2)) +
-        labs(title = "Sea time series: optimal AR2-model\ntrend, forecast", x = "t", y = "GMSL") +
+        scale_y_continuous(limits=c(25, 65), breaks = seq(25,65,2)) +
+        labs(title = "Sea time series: optimal AR2\ntrend, forecast", x = "t", y = "GMSL") +
         JT.theme
 p2 <- ggplot(data = autosea.opt, aes(x = lag, y = acf)) +
         geom_segment(aes(xend = lag, yend = 0), alpha = 0.4, size = 2) +
@@ -1361,7 +1349,7 @@ p2 <- ggplot(data = autosea.opt, aes(x = lag, y = acf)) +
         geom_hline(yintercept = ci.low, linetype = "dashed", col = "blue") +
         scale_x_continuous(limits=c(0, 10), breaks = seq(0,10,1)) +
         scale_y_continuous(limits=c(-1, 1), breaks = seq(-1,1,0.1)) +
-        labs(title = "Sea time series: optimal AR2-model\nautocorrelation of residuals", x = "lag", y = "result") +
+        labs(title = "Sea time series: optimal AR2\nautocorrelation of residuals", x = "lag", y = "result") +
         JT.theme
 grid.arrange(p1, p2, nrow = 1)
 @
