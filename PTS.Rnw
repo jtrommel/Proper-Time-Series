@@ -1362,6 +1362,20 @@ grid.arrange(p1, p2, nrow = 1)
 \end{figure}
 \medskip
 
+<<>>=
+w <- polyroot(c(-a2, -a1, 1))
+w1 <- w[1]
+w2 <- w[2]
+a <- matrix(c(w1, w2, w1^2, w2^2), nrow = 2, byrow = TRUE)
+b <- c(0,2)
+b[1:2] <- sea_train$GMSL[1:2]
+A <- solve(a,b)[1]
+B <- solve(a,b)[2]
+ytest <- rep(0,ntrain)
+for (i in seq(1, ntrain, 1)) {ytest[i] <- A*(w1^i) + B*(w2^i)}
+plot(seq(1, ntrain,1), ytest)
+plot(seq(1, ntrain, 1), sea_train$trend)
+@
 
 \subsection{The random walk}\index{random walk}\index{dependency!random walk}
 
