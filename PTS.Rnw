@@ -841,7 +841,6 @@ grid.arrange(p1, p2, nrow=1)
 \end{center}
 \end{figure}
 
-
 The presence of autocorrelation within a time series seems to be a great nuisance. However, we can make good use of it when our time series has the underlying (linear) structure:
 \begin{equation}
 	y_{t}=y_{t-1} + b_{1} + \epsilon_{t}(0,\sigma)
@@ -880,7 +879,7 @@ ggplot(data = lintrend2) +
 
 With some goodwill we can detect a linear trend, which means that the underlying recursive formula associated with this time series could be of the form
 \begin{equation}
-	y_{t} = y_{t-1} + b_{1} \quad t=1 \ldots n
+	\hat{y}_{t} = \hat{y}_{t-1} + b_{1} \quad t=1 \ldots n
 \end{equation}
 
 We calculate the once-differenced time series $z_{t}$:
@@ -940,12 +939,12 @@ If $z_{t}$ is a stationary time series,we expect its values to be randomly distr
 
 Our first tentative forecast (Figure~\ref{fig:lintrend6}) for the next k\sidenote{here k=5} time points goes as follows:
 \begin{itemize}
-  \item the trendline (red and dashed) is given by $y_{i} = y_{i-1} + b_{1} = y_{i-1}$ + \Sexpr{round(mudiv,3)}  for i=1, $\ldots$ , n
+  \item the trendline (red and dashed) is given by $\hat{y}_{i} = \hat{y}_{i-1} + b_{1} = \hat{y}_{i-1}$ + \Sexpr{round(mudiv,3)}  for i=1, $\ldots$ , n
   \item the starting point of the trendline is the ''intercept" of the linear regression through the time series data
-	\item the forecasted values are given by $y_{i} = y_{i-1} + b_{1} = y_{i-1}$ + \Sexpr{round(mudiv,3)}  for i=(n+1), $\ldots$ , (n+k)
-	\item the starting point of the forecast $y_{n+1}$ is equal to the last point of the trendline + \Sexpr{round(mudiv,3)}
-	\item the 95\% upper confidence level is given by $y_{i}$ + 1.96$\sqrt{(i-n)}\sigma$ = $y_{i}$ + 1.96$\sqrt{i-n}$\Sexpr{round(sddiv,3)}  for i=(n+1), $\ldots$ , (n+k)
-	\item the 95\% lower confidence level is given by $y_{i}$ - 1.96$\sqrt{(i-n)}\sigma$ =$y_{i}$ - 1.96$\sqrt{i-n}$\Sexpr{round(sddiv,3)}  for i=(n+1), $\ldots$ , (n+k)
+	\item the forecasted values are given by $\hat{y}_{i} = \hat{y}_{i-1} + b_{1} = \hat{y}_{i-1}$ + \Sexpr{round(mudiv,3)}  for i=(n+1), $\ldots$ , (n+k)
+	\item the starting point of the forecast $\hat{y}_{n+1}$ is equal to the last point of the trendline + \Sexpr{round(mudiv,3)}
+	\item the 95\% upper confidence level is given by $\hat{y}_{i}$ + 1.96$\sqrt{(i-n)}\sigma$ = $\hat{y}_{i}$ + 1.96$\sqrt{i-n}$\Sexpr{round(sddiv,3)}  for i=(n+1), $\ldots$ , (n+k)
+	\item the 95\% lower confidence level is given by $\hat{y}_{i}$ - 1.96$\sqrt{(i-n)}\sigma$ =$\hat{y}_{i}$ - 1.96$\sqrt{i-n}$\Sexpr{round(sddiv,3)}  for i=(n+1), $\ldots$ , (n+k)
 \end{itemize}
 
 <<label=lintrend6, fig=TRUE, include=FALSE, echo=FALSE>>=
@@ -1310,8 +1309,7 @@ We're not doing bad: our accuracy is better than the optimal solution for all me
 <<label=seaaropt, fig=TRUE, include=FALSE, echo=FALSE>>=
 # calculate the trendline
 sea_train$trend.opt<- rep(0, ntrain)
-sea_train$trend.opt[1:2] <- NA
-sea_train$trend.opt[3:ntrain] <- fitted(sea.ar2)
+sea_train$trend.opt <- fitted(sea.opt)
 # calculate residuals
 sea_train$resid.opt <- rep(0, ntrain)
 sea_train$resid.opt <- sea_train$GMSL - sea_train$trend.opt
@@ -1362,20 +1360,6 @@ grid.arrange(p1, p2, nrow = 1)
 \end{figure}
 \medskip
 
-<<>>=
-w <- polyroot(c(-a2, -a1, 1))
-w1 <- w[1]
-w2 <- w[2]
-a <- matrix(c(w1, w2, w1^2, w2^2), nrow = 2, byrow = TRUE)
-b <- c(0,2)
-b[1:2] <- sea_train$GMSL[1:2]
-A <- solve(a,b)[1]
-B <- solve(a,b)[2]
-ytest <- rep(0,ntrain)
-for (i in seq(1, ntrain, 1)) {ytest[i] <- A*(w1^i) + B*(w2^i)}
-plot(seq(1, ntrain,1), ytest)
-plot(seq(1, ntrain, 1), sea_train$trend)
-@
 
 \subsection{The random walk}\index{random walk}\index{dependency!random walk}
 
